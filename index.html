@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vane Store</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* --- ESTILOS PARA LA MARCA DE AGUA (WATERMARK) --- */
+        .boleta-card {
+            position: relative;
+            z-index: 1;
+            overflow: hidden; 
+        }
+
+        .boleta-card::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-20deg);
+            width: 280px; 
+            height: 280px;
+            background-image: url('logo-vane.png'); 
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.08; 
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        @media print {
+            .boleta-card::before {
+                visibility: visible !important;
+                opacity: 0.12 !important; 
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <div class="logo">VANE <span>STORE</span></div>
+        <nav class="menu-superior">
+            <button onclick="mostrarSeccion('pos')" class="btn-nav">🛒 Ventas</button>
+            <button onclick="mostrarSeccion('registro')" class="btn-nav btn-accent">📦 Nueva Mercadería</button>
+        </nav>
+    </header>
+
+    <main id="sec-pos" class="pos-container">
+        <section class="catalog-section">
+            <div class="search-wrapper">
+                <input type="text" id="pos-search" placeholder="🔍 Escanea código o busca producto..." onkeyup="filtrarPOS(this.value)" autofocus>
+            </div>
+            <div id="grid-productos" class="grid-productos"></div>
+        </section>
+
+        <section class="checkout-section">
+            <div class="boleta-card">
+                <div class="boleta-header">
+                    <h2 style="margin:0;">VANE STORE</h2>
+                    <p>RUC: 10725489631</p>
+                    <p>Av. Principal 123 - Lima</p>
+                    <hr>
+                    <div style="text-align: left; font-size: 0.85rem;">
+                        <p><strong>Ticket:</strong> <span id="num-ticket">---</span></p>
+                        <p><strong>Fecha:</strong> <span id="fecha-boleta">---</span></p>
+                        <p><strong>Vendedor:</strong> <input type="text" id="vendedor-nombre" placeholder="Nombre vendedor"></p>
+                        <p><strong>Cliente (DNI/RUC):</strong> <input type="text" id="cliente-doc" placeholder="DNI o RUC"></p>
+                    </div>
+                    <hr>
+                </div>
+
+                <div id="carrito-items" class="carrito-items"></div>
+
+                <div class="boleta-footer">
+                    <div class="total-row">
+                        <span>Op. Gravada:</span>
+                        <span id="subtotal-gravada">S/ 0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <span>IGV (18%):</span>
+                        <span id="igv-monto">S/ 0.00</span>
+                    </div>
+                    <div class="total-row total-final">
+                        <span>TOTAL:</span>
+                        <span id="pos-total">S/ 0.00</span>
+                    </div>
+                    
+                    <button class="btn-confirmar" onclick="finalizarVenta()">PAGAR E IMPRIMIR</button>
+                    <button class="btn-vaciar" onclick="limpiarCarrito()">Vaciar Carrito</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <section id="sec-registro" class="container-registro" style="display:none;">
+        <div class="card-registro">
+            <h2>📦 Registro de Mercadería</h2>
+            <div class="form-body">
+                <div class="camera-box">
+                    <label>Foto del Producto</label>
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="canvas" style="display:none;"></canvas>
+                    
+                    <button type="button" class="btn-snap" onclick="tomarFoto()">📸 CAPTURAR FOTO</button>
+
+                    <div style="text-align: center; margin-bottom: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+                        <p style="font-size: 0.8rem; color: #666; margin: 5px 0;">O selecciona una imagen de tu equipo:</p>
+                        <input type="file" id="file-input" accept="image/*" onchange="cargarImagenDesdeArchivo(event)">
+                    </div>
+
+                    <div id="wrapper-preview" style="display:none;">
+                        <img id="img-preview" src="">
+                        <button type="button" class="btn-borrar-foto" onclick="borrarFotoActual()">✕</button>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 15px;">
+                    <input type="text" id="prod-codigo" placeholder="Código de Barras (Escanea)">
+                </div>
+                <div class="form-group">
+                    <input type="text" id="prod-nombre" placeholder="Nombre del Producto">
+                </div>
+                <div class="grid-inputs">
+                    <input type="number" id="prod-precio" placeholder="Precio Venta S/">
+                    <input type="number" id="prod-stock" placeholder="Stock Inicial">
+                </div>
+                <button class="btn-guardar-prod" onclick="guardarLocal()">GUARDAR EN INVENTARIO</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+      // Configuración de tu proyecto Vane Store
+      const firebaseConfig = {
+        apiKey: "AIzaSyCxeL-OTNLP3qluo-S5OuSWcWjYEjU4w5s",
+        authDomain: "vanestore-pos.firebaseapp.com",
+        databaseURL: "https://vanestore-pos-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "vanestore-pos",
+        storageBucket: "vanestore-pos.firebasestorage.app",
+        messagingSenderId: "559830889362",
+        appId: "1:559830889362:web:b851f538a173194512c74b"
+      };
+
+      // Inicializar Firebase
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+    </script>
+
+    <script src="script.js"></script>
+</body>
+</html>
