@@ -39,6 +39,50 @@
                 print-color-adjust: exact !important;
             }
         }
+
+        /* --- ESTILOS PARA EL MODAL DE CONFIRMACIÓN (NUEVO) --- */
+        .modal-vane {
+            display: none; 
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-contenido {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: aparecer 0.3s ease;
+        }
+
+        @keyframes aparecer {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-icono { font-size: 3rem; margin-bottom: 10px; }
+        .modal-botones { display: flex; gap: 10px; margin-top: 25px; }
+
+        .btn-modal-si {
+            flex: 1; background: #ff4757; color: white;
+            border: none; padding: 12px; border-radius: 10px;
+            font-weight: 800; cursor: pointer; font-family: 'Poppins', sans-serif;
+        }
+
+        .btn-modal-no {
+            flex: 1; background: #f1f2f6; color: #2f3542;
+            border: none; padding: 12px; border-radius: 10px;
+            font-weight: 800; cursor: pointer; font-family: 'Poppins', sans-serif;
+        }
     </style>
 </head>
 <body>
@@ -62,31 +106,26 @@
             <div class="boleta-card">
                 <div class="boleta-header">
                     <h2 style="margin:0;">VANE STORE</h2>
-                    <p>RUC: 10725489631</p>
-                    <p>Av. Principal 123 - Lima</p>
+                    <p style="margin:2px 0; font-size: 0.8rem;">RUC: 10612629230</p>
+                    <p style="margin:2px 0; font-size: 0.8rem;">Calle 7 #170 Av. Buenos Aires</p>
                     <hr>
-                    <div style="text-align: left; font-size: 0.85rem;">
-                        <p><strong>Ticket:</strong> <span id="num-ticket">---</span></p>
-                        <p><strong>Fecha:</strong> <span id="fecha-boleta">---</span></p>
-                        <p><strong>Vendedor:</strong> <input type="text" id="vendedor-nombre" placeholder="Nombre vendedor"></p>
-                        <p><strong>Cliente (DNI/RUC):</strong> <input type="text" id="cliente-doc" placeholder="DNI o RUC"></p>
+                    <div id="fecha-boleta" style="font-size: 0.75rem;"></div>
+                    <div id="num-ticket" style="font-weight: bold; margin-bottom: 5px;"></div>
+                    
+                    <div style="text-align: left; margin-top: 10px;">
+                        <small>Vendedor:</small><br>
+                        <input type="text" id="vendedor-nombre" value="Personal" readonly>
+                        <br>
+                        <small>Cliente (DNI/RUC):</small><br>
+                        <input type="text" id="cliente-dni" placeholder="________">
                     </div>
-                    <hr>
                 </div>
 
                 <div id="carrito-items" class="carrito-items"></div>
 
                 <div class="boleta-footer">
-                    <div class="total-row">
-                        <span>Op. Gravada:</span>
-                        <span id="subtotal-gravada">S/ 0.00</span>
-                    </div>
-                    <div class="total-row">
-                        <span>IGV (18%):</span>
-                        <span id="igv-monto">S/ 0.00</span>
-                    </div>
                     <div class="total-row total-final">
-                        <span>TOTAL:</span>
+                        <span>TOTAL A PAGAR:</span>
                         <span id="pos-total">S/ 0.00</span>
                     </div>
                     
@@ -134,6 +173,18 @@
         </div>
     </section>
 
+    <div id="modal-confirmacion" class="modal-vane">
+        <div class="modal-contenido">
+            <div class="modal-icono">⚠️</div>
+            <h3 style="margin: 0; font-weight: 800;">¿Estás segura?</h3>
+            <p style="color: #666; font-size: 0.9rem; margin-top: 10px;">Este producto se eliminará de todas las PC y no se puede deshacer.</p>
+            <div class="modal-botones">
+                <button id="btn-confirmar-borrar" class="btn-modal-si">SÍ, ELIMINAR</button>
+                <button onclick="cerrarModal()" class="btn-modal-no">CANCELAR</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
@@ -149,7 +200,6 @@
         appId: "1:559830889362:web:b851f538a173194512c74b"
       };
 
-      // Inicializar Firebase
       firebase.initializeApp(firebaseConfig);
       const db = firebase.database();
     </script>

@@ -3,6 +3,7 @@ let productos = [];
 let carrito = [];
 let streamActual = null; 
 let editandoID = null; 
+let idParaEliminar = null; // Variable para el Modal de eliminación
 
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
@@ -27,7 +28,7 @@ db.ref('productos').on('value', (snapshot) => {
 // --- NOTIFICACIONES ELEGANTES ---
 function mostrarNotificacion(mensaje) {
     const toast = document.createElement('div');
-    toast.className = 'toast-vane'; // Usa la clase del CSS nuevo
+    toast.className = 'toast-vane'; 
     toast.innerHTML = `<span>✨</span> ${mensaje}`;
     document.body.appendChild(toast);
 
@@ -93,25 +94,25 @@ function guardarLocal() {
         codigo: document.getElementById('prod-codigo').value,
         nombre: document.getElementById('prod-nombre').value,
         precio: parseFloat(document.getElementById('prod-precio').value),
-        stock: document.getElementById('prod-stock').value,
+        stock: parseInt(document.getElementById('prod-stock').value) || 0,
         foto: imgPreview.src 
     };
 
-    if(!p.nombre || !p.precio || !p.foto || imgPreview.src === "") {
+    if(!p.nombre || isNaN(p.precio) || !p.foto || imgPreview.src === "") {
         return mostrarNotificacion("Faltan datos o la foto");
     }
 
     if (editandoID) {
         db.ref('productos/' + editandoID).set(p)
             .then(() => {
-                mostrarNotificacion("Producto actualizado con éxito");
+                mostrarNotificacion("✅ Producto actualizado con éxito");
                 limpiarFormularioRegistro();
                 mostrarSeccion('pos');
             });
     } else {
         db.ref('productos').push(p)
             .then(() => {
-                mostrarNotificacion("Guardado en la nube correctamente");
+                mostrarNotificacion("☁️ Guardado en la nube correctamente");
                 limpiarFormularioRegistro();
                 mostrarSeccion('pos');
             });
@@ -149,19 +150,41 @@ function prepararEdicion(id, event) {
     document.querySelector('.btn-guardar-prod').innerText = "ACTUALIZAR PRODUCTO";
 }
 
+// --- NUEVA LÓGICA DE ELIMINACIÓN CON MODAL ---
 function eliminarProducto(id, event) {
     event.stopPropagation();
-    if(confirm("¿Segura que quieres eliminar este producto de TODAS las PC?")) {
-        db.ref('productos/' + id).remove()
-            .then(() => mostrarNotificacion("Producto eliminado"));
-    }
+    idParaEliminar = id; // Guardamos el ID del producto que queremos borrar
+    document.getElementById('modal-confirmacion').style.display = 'flex'; // Mostramos el modal elegante
 }
+
+function cerrarModal() {
+    document.getElementById('modal-confirmacion').style.display = 'none';
+    idParaEliminar = null;
+}
+
+// Configurar el botón de "SÍ, ELIMINAR" del modal
+document.getElementById('btn-confirmar-borrar').onclick = function() {
+    if (idParaEliminar) {
+        db.ref('productos/' + idParaEliminar).remove()
+            .then(() => {
+                mostrarNotificacion("🗑️ Producto eliminado correctamente");
+                cerrarModal();
+            })
+            .catch((error) => {
+                mostrarNotificacion("❌ Error al eliminar");
+                console.error(error);
+                cerrarModal();
+            });
+    }
+};
 
 function renderTienda() {
     const grid = document.getElementById('grid-productos');
     if(!grid) return;
     grid.innerHTML = "";
     productos.forEach(p => {
+        const stockColor = p.stock <= 5 ? 'red' : '#666';
+
         grid.innerHTML += `
             <div class="card-producto" onclick="agregarCarrito('${p.id}')">
                 <div class="admin-btns">
@@ -171,7 +194,12 @@ function renderTienda() {
                 <img src="${p.foto}">
                 <h4>${p.nombre}</h4>
                 <p>S/ ${p.precio.toFixed(2)}</p>
-                <small>${p.codigo}</small>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                    <small style="color: #999;">${p.codigo}</small>
+                    <small style="background: #f1f2f6; padding: 2px 8px; border-radius: 10px; font-weight: bold; color: ${stockColor};">
+                        Stock: ${p.stock}
+                    </small>
+                </div>
             </div>`;
     });
 }
@@ -191,9 +219,17 @@ function mostrarSeccion(id) {
 function agregarCarrito(id) {
     const p = productos.find(x => x.id === id);
     if(p) {
+        if(parseInt(p.stock) <= 0) {
+            return mostrarNotificacion("❌ ¡AGOTADO! No queda stock de este producto.");
+        }
+        
         const item = carrito.find(x => x.id === id);
         if(item) {
-            item.cant++;
+            if(item.cant < parseInt(p.stock)) {
+                item.cant++;
+            } else {
+                return mostrarNotificacion("⚠️ Límite de stock alcanzado");
+            }
         } else {
             carrito.push({...p, cant: 1});
         }
@@ -232,11 +268,6 @@ function renderBoleta() {
             </div>`;
     });
 
-    const subtotal = total / 1.18;
-    const igv = total - subtotal;
-
-    if(document.getElementById('subtotal-gravada')) document.getElementById('subtotal-gravada').innerText = "S/ " + subtotal.toFixed(2);
-    if(document.getElementById('igv-monto')) document.getElementById('igv-monto').innerText = "S/ " + igv.toFixed(2);
     document.getElementById('pos-total').innerText = "S/ " + total.toFixed(2);
 }
 
@@ -246,11 +277,20 @@ function limpiarCarrito() {
     mostrarNotificacion("Carrito vaciado");
 }
 
+// --- FINALIZAR VENTA CON DESCUENTO DE STOCK ---
 function finalizarVenta() { 
     if(carrito.length > 0) { 
+        carrito.forEach(item => {
+            const nuevoStock = item.stock - item.cant;
+            db.ref('productos/' + item.id).update({ stock: nuevoStock });
+        });
+
         const numTicket = "B001-" + Math.floor(Math.random() * 900000 + 100000);
         const ahora = new Date();
         const fechaTexto = ahora.toLocaleDateString() + ' ' + ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+        const campoVendedor = document.getElementById('vendedor-nombre'); 
+        if(campoVendedor) campoVendedor.value = "Personal";
 
         document.getElementById('num-ticket').innerText = numTicket;
         document.getElementById('fecha-boleta').innerText = fechaTexto;
@@ -258,18 +298,28 @@ function finalizarVenta() {
         window.print(); 
         carrito = []; 
         renderBoleta(); 
-        mostrarNotificacion("Venta finalizada e impresa");
-    } 
+        mostrarNotificacion("Venta procesada y stock actualizado");
+    } else {
+        mostrarNotificacion("El carrito está vacío");
+    }
 }
 
 function filtrarPOS(val) {
     const q = val.toLowerCase();
+    
     const exacto = productos.find(p => p.codigo === val);
     if(exacto) { 
+        if(parseInt(exacto.stock) <= 0) {
+            mostrarNotificacion("❌ Código detectado pero el producto está AGOTADO");
+            document.getElementById('pos-search').value = ""; 
+            return; 
+        }
+        
         agregarCarrito(exacto.id); 
         document.getElementById('pos-search').value = ""; 
         mostrarNotificacion("Producto agregado por código");
     }
+
     document.querySelectorAll('.card-producto').forEach(c => {
         c.style.display = c.innerText.toLowerCase().includes(q) ? "block" : "none";
     });
