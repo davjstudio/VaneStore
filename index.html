@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vane Store</title>
+    
+    <link rel="icon" href="logo-vane.png" type="image/png">
+    
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -40,7 +43,7 @@
             }
         }
 
-        /* --- ESTILOS PARA EL MODAL DE CONFIRMACIÓN (NUEVO) --- */
+        /* --- ESTILOS PARA EL MODAL DE CONFIRMACIÓN --- */
         .modal-vane {
             display: none; 
             position: fixed;
@@ -91,13 +94,14 @@
         <nav class="menu-superior">
             <button onclick="mostrarSeccion('pos')" class="btn-nav">🛒 Ventas</button>
             <button onclick="mostrarSeccion('registro')" class="btn-nav btn-accent">📦 Nueva Mercadería</button>
+            <button onclick="mostrarSeccion('historial')" class="btn-nav" style="background: #2f3542; color: white;">📋 Historial</button>
         </nav>
     </header>
 
     <main id="sec-pos" class="pos-container">
         <section class="catalog-section">
             <div class="search-wrapper">
-                <input type="text" id="pos-search" placeholder="🔍 Escanea código o busca producto..." onkeyup="filtrarPOS(this.value)" autofocus>
+                <input type="text" id="pos-search" placeholder="Escanea código o busca producto..." onkeyup="filtrarPOS(this.value)" autofocus>
             </div>
             <div id="grid-productos" class="grid-productos"></div>
         </section>
@@ -173,13 +177,44 @@
         </div>
     </section>
 
+    <section id="sec-historial" class="container-registro" style="display:none; flex-direction: column; align-items: center;">
+        <div class="card-registro" style="max-width: 800px; width: 95%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <h2 style="margin:0;">📋 Historial de Ventas</h2>
+                <div style="display: flex; gap: 5px;">
+                    <button onclick="exportarExcel()" style="background: #2ed573; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">📊 Excel</button>
+                    <button onclick="limpiarHistorialTotal()" style="background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">Limpiar Todo</button>
+                </div>
+            </div>
+
+            <div style="background: #f1f2f6; padding: 15px; border-radius: 12px; margin-bottom: 15px; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                <div>
+                    <small>Desde:</small><br>
+                    <input type="date" id="filtro-desde" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc; font-family: 'Poppins', sans-serif;">
+                </div>
+                <div>
+                    <small>Hasta:</small><br>
+                    <input type="date" id="filtro-hasta" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc; font-family: 'Poppins', sans-serif;">
+                </div>
+                <button onclick="renderHistorialFiltrado()" style="margin-top: 15px; background: #5352ed; color: white; border: none; padding: 7px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">Filtrar</button>
+            </div>
+            
+            <div id="lista-ventas" style="max-height: 500px; overflow-y: auto; text-align: left;">
+                </div>
+
+            <div style="margin-top: 20px; border-top: 2px solid #eee; padding-top: 15px; text-align: right;">
+                <h3 id="total-dia" style="color: #2ed573;">Total Seleccionado: S/ 0.00</h3>
+            </div>
+        </div>
+    </section>
+
     <div id="modal-confirmacion" class="modal-vane">
         <div class="modal-contenido">
             <div class="modal-icono">⚠️</div>
-            <h3 style="margin: 0; font-weight: 800;">¿Estás segura?</h3>
-            <p style="color: #666; font-size: 0.9rem; margin-top: 10px;">Este producto se eliminará de todas las PC y no se puede deshacer.</p>
+            <h3 id="modal-titulo" style="margin: 0; font-weight: 800;">¿Estás seguro(a)?</h3>
+            <p id="modal-mensaje" style="color: #666; font-size: 0.9rem; margin-top: 10px;">Esta acción no se puede deshacer.</p>
             <div class="modal-botones">
-                <button id="btn-confirmar-borrar" class="btn-modal-si">SÍ, ELIMINAR</button>
+                <button id="btn-confirmar-accion" class="btn-modal-si">SÍ, CONTINUAR</button>
                 <button onclick="cerrarModal()" class="btn-modal-no">CANCELAR</button>
             </div>
         </div>
@@ -189,7 +224,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-      // Configuración de tu proyecto Vane Store
       const firebaseConfig = {
         apiKey: "AIzaSyCxeL-OTNLP3qluo-S5OuSWcWjYEjU4w5s",
         authDomain: "vanestore-pos.firebaseapp.com",
@@ -199,11 +233,11 @@
         messagingSenderId: "559830889362",
         appId: "1:559830889362:web:b851f538a173194512c74b"
       };
-
       firebase.initializeApp(firebaseConfig);
       const db = firebase.database();
     </script>
 
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
