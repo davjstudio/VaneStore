@@ -6,7 +6,7 @@
     --danger: #e74c3c;
     --warning: #f1c40f;
     --success: #2ed573;
-    --gold: #ce9600; /* Color Dorado para notificaciones */
+    --gold: #ce9600;
 }
 
 body { 
@@ -72,7 +72,7 @@ body {
 .btn-edit-prod { background: var(--warning); }
 .btn-delete-prod { background: var(--danger); }
 
-/* --- BOLETA / CARRITO EN PANTALLA --- */
+/* --- BOLETA / CARRITO --- */
 .checkout-section { 
     flex: 0.8; 
     position: sticky; 
@@ -99,14 +99,42 @@ body {
     border: none !important;
     box-shadow: none !important;
     outline: none !important;
-    appearance: none !important;
-    -webkit-appearance: none;
     padding: 0 !important;
     font-family: 'Poppins', sans-serif;
     font-size: 0.85rem;
     color: var(--dark);
     width: 80%;
     margin: 2px 0;
+}
+
+/* --- ESTILO LIMPIO PARA PAGA CON Y VUELTO (SIN CUADROS) --- */
+#pago-cliente {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    text-align: right;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--dark);
+    width: 80px; /* Ajustado para que el S/ quepa al lado */
+    padding: 0;
+    margin: 0;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+#pago-cliente::-webkit-inner-spin-button,
+#pago-cliente::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#vuelto-cliente {
+    font-weight: 800;
+    color: var(--success);
+    font-size: 1.1rem;
 }
 
 .item-boleta-linea {
@@ -119,6 +147,15 @@ body {
     display: flex; justify-content: space-between; align-items: center;
     padding: 5px 0; font-size: 0.9rem; font-weight: 600;
 }
+
+/* Contenedor especial para alinear el S/ con el input */
+.pago-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: flex-end;
+}
+
 .total-final { 
     font-size: 1.6rem; font-weight: 800; border-top: 2px dashed #eee; 
     margin-top: 10px; padding-top: 15px; color: #000;
@@ -137,7 +174,7 @@ body {
 .btn-snap { width: 100%; background: #34495e; color: white; padding: 12px; border: none; border-radius: 10px; margin: 10px 0; cursor: pointer; font-weight: 600; }
 .btn-guardar-prod { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; margin-top: 10px; cursor: pointer; }
 
-/* --- MARCA DE AGUA (WATERMARK) --- */
+/* --- MARCA DE AGUA --- */
 .boleta-card::before {
     content: "";
     position: absolute;
@@ -151,31 +188,35 @@ body {
 
 /* --- NOTIFICACIONES TOAST --- */
 .toast-vane {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #1a1a1a;
-    color: var(--gold);
-    padding: 15px 25px;
-    border-radius: 10px;
+    position: fixed; top: 20px; right: 20px;
+    background: #1a1a1a; color: var(--gold);
+    padding: 15px 25px; border-radius: 10px;
     border-left: 5px solid var(--gold);
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    z-index: 10000; display: flex; align-items: center; gap: 10px;
     font-weight: 600;
     animation: slideIn 0.5s ease forwards, fadeOut 0.5s ease 2.5s forwards;
 }
 
-@keyframes slideIn {
-    from { transform: translateX(120%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
+@keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes fadeOut { to { transform: translateY(-20px); opacity: 0; } }
 
-@keyframes fadeOut {
-    to { transform: translateY(-20px); opacity: 0; }
+/* --- MODAL --- */
+.modal-vane {
+    display: none; position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px); z-index: 9999;
+    align-items: center; justify-content: center;
 }
+.modal-contenido {
+    background: white; padding: 30px; border-radius: 20px;
+    text-align: center; width: 90%; max-width: 400px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: aparecer 0.3s ease;
+}
+@keyframes aparecer { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal-botones { display: flex; gap: 10px; margin-top: 20px; }
+.btn-modal-si { flex: 1; background: #ff4757; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+.btn-modal-no { flex: 1; background: #f1f2f6; color: #2f3542; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; }
 
 /* --- AJUSTES PARA CELULAR --- */
 @media (max-width: 768px) {
@@ -184,8 +225,6 @@ body {
     .checkout-section { position: relative; top: 0; margin-top: 20px; }
     .grid-productos { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
     .main-header { flex-direction: column; gap: 10px; padding: 15px; }
-    .logo { font-size: 1.3rem; }
-    .boleta-card { padding: 15px; }
 }
 
 /* --- FORMATO DE IMPRESIÓN --- */
@@ -196,9 +235,10 @@ body {
     .boleta-card, .boleta-card * { visibility: visible; }
     .boleta-card {
         position: absolute; left: 0; top: 0; width: 100%; 
-        max-width: 75mm; padding: 5mm; box-shadow: none; border: none; height: auto;
+        max-width: 75mm; padding: 5mm; box-shadow: none; border: none;
         font-family: 'Courier New', monospace;
     }
+    #pago-cliente { font-family: 'Courier New', monospace; font-size: 0.9rem; width: 50px; }
     .boleta-header { border-bottom: 1px dashed #000; margin-bottom: 5mm; }
     .item-boleta-linea { border-bottom: 1px dashed #000; padding: 2mm 0; font-size: 0.8rem; }
     .total-final { border-top: 1px solid #000; margin-top: 2mm; padding-top: 2mm; font-size: 1.1rem; }
@@ -207,54 +247,6 @@ body {
         content: "******************************** \A ¡GRACIAS POR TU COMPRA EN VANE STORE! \A ********************************";
         display: block; text-align: center; white-space: pre-wrap; margin-top: 10mm; font-size: 0.65rem; line-height: 1.4; width: 100%;
     }
-    .boleta-card::before { 
-        visibility: visible !important; 
-        opacity: 0.25 !important; 
-        -webkit-print-color-adjust: exact !important; 
-        print-color-adjust: exact !important; 
-    }
-}
-
-/* Estilos para el Modal de Vane Store */
-.modal-vane {
-    display: none; 
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(5px);
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-contenido {
-    background: white;
-    padding: 30px;
-    border-radius: 20px;
-    text-align: center;
-    width: 90%;
-    max-width: 400px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    animation: aparecer 0.3s ease;
-}
-
-@keyframes aparecer {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-
-.modal-icono { font-size: 3rem; margin-bottom: 10px; }
-.modal-botones { display: flex; gap: 10px; margin-top: 20px; }
-
-.btn-modal-si {
-    flex: 1; background: #ff4757; color: white;
-    border: none; padding: 12px; border-radius: 10px;
-    font-weight: bold; cursor: pointer;
-}
-
-.btn-modal-no {
-    flex: 1; background: #f1f2f6; color: #2f3542;
-    border: none; padding: 12px; border-radius: 10px;
-    font-weight: bold; cursor: pointer;
+    .boleta-card::before { opacity: 0.25 !important; -webkit-print-color-adjust: exact !important; 
+print-color-adjust: exact !important; }
 }

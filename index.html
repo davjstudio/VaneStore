@@ -132,6 +132,18 @@
                         <span>TOTAL A PAGAR:</span>
                         <span id="pos-total">S/ 0.00</span>
                     </div>
+
+                    <div class="total-row">
+                        <span>Paga con:</span>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <span style="font-weight: 700; font-size: 1.1rem;">S/</span>
+                            <input type="number" id="pago-cliente" placeholder="0.00" oninput="calcularVuelto()">
+                        </div>
+                    </div>
+                    <div class="total-row" style="color: #2ed573; font-weight: 800; margin-bottom: 15px;">
+                        <span>Vuelto:</span>
+                        <span id="vuelto-cliente">S/ 0.00</span>
+                    </div>
                     
                     <button class="btn-confirmar" onclick="finalizarVenta()">PAGAR E IMPRIMIR</button>
                     <button class="btn-vaciar" onclick="limpiarCarrito()">Vaciar Carrito</button>

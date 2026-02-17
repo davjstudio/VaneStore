@@ -5,7 +5,7 @@ let todasLasVentas = [];
 let streamActual = null; 
 let editandoID = null; 
 let idParaEliminar = null; 
-let accionPendiente = null; // Nueva: para saber qué hace el modal
+let accionPendiente = null; 
 
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
@@ -146,14 +146,14 @@ function eliminarProducto(id, event) {
     idParaEliminar = id;
     accionPendiente = "producto";
     document.getElementById('modal-titulo').innerText = "¿Eliminar producto?";
-    document.getElementById('modal-mensaje').innerText = "¿Segura que quieres eliminar este producto de TODAS las PC?";
+    document.getElementById('modal-mensaje').innerText = "¿Seguro(a) que quieres eliminar este producto?";
     document.getElementById('modal-confirmacion').style.display = 'flex';
 }
 
 function limpiarHistorialTotal() {
     accionPendiente = "historial";
     document.getElementById('modal-titulo').innerText = "¿Vaciar historial?";
-    document.getElementById('modal-mensaje').innerText = "¿Segura que quieres borrar todo el registro de ventas? Esta acción es permanente.";
+    document.getElementById('modal-mensaje').innerText = "¿Seguro(a) que quieres borrar todo el registro de ventas? Esta acción es permanente.";
     document.getElementById('modal-confirmacion').style.display = 'flex';
 }
 
@@ -224,6 +224,16 @@ function mostrarSeccion(id) {
     }
 }
 
+// --- LÓGICA DE PAGO Y VUELTO ---
+function calcularVuelto() {
+    const totalText = document.getElementById('pos-total').innerText.replace('S/ ', '');
+    const total = parseFloat(totalText) || 0;
+    const pago = parseFloat(document.getElementById('pago-cliente').value) || 0;
+    const vuelto = pago - total;
+    
+    document.getElementById('vuelto-cliente').innerText = `S/ ${Math.max(0, vuelto).toFixed(2)}`;
+}
+
 // --- CARRITO Y VENTAS ---
 function agregarCarrito(id) {
     const p = productos.find(x => x.id === id);
@@ -268,10 +278,13 @@ function renderBoleta() {
             </div>`;
     });
     document.getElementById('pos-total').innerText = "S/ " + total.toFixed(2);
+    calcularVuelto(); // Recalcula vuelto si cambian los items
 }
 
 function limpiarCarrito() {
     carrito = [];
+    document.getElementById('pago-cliente').value = "";
+    document.getElementById('vuelto-cliente').innerText = "S/ 0.00";
     renderBoleta();
     mostrarNotificacion("Carrito vaciado");
 }
@@ -279,6 +292,9 @@ function limpiarCarrito() {
 function finalizarVenta() { 
     if(carrito.length > 0) { 
         const totalVenta = carrito.reduce((sum, item) => sum + (item.precio * item.cant), 0);
+        const pagoCon = parseFloat(document.getElementById('pago-cliente').value) || totalVenta;
+        const vueltoVal = pagoCon - totalVenta;
+        
         const numTicket = "B001-" + Math.floor(Math.random() * 900000 + 100000);
         const ahora = new Date();
         const fechaTexto = ahora.toLocaleDateString() + ' ' + ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -287,8 +303,12 @@ function finalizarVenta() {
             ticket: numTicket,
             fecha: fechaTexto,
             total: totalVenta,
+            pagoCon: pagoCon,
+            vuelto: Math.max(0, vueltoVal),
+            cliente: document.getElementById('cliente-dni').value || "General",
             productos: carrito.map(i => `${i.cant}x ${i.nombre}`)
         };
+        
         db.ref('ventas').push(ventaData);
 
         carrito.forEach(item => {
@@ -297,8 +317,14 @@ function finalizarVenta() {
         
         document.getElementById('num-ticket').innerText = numTicket;
         document.getElementById('fecha-boleta').innerText = fechaTexto;
+        
         window.print(); 
+        
+        // Limpiar todo después de la venta
         carrito = []; 
+        document.getElementById('pago-cliente').value = "";
+        document.getElementById('vuelto-cliente').innerText = "S/ 0.00";
+        document.getElementById('cliente-dni').value = "";
         renderBoleta(); 
         mostrarNotificacion("✅ Venta registrada");
     } else {
@@ -362,14 +388,15 @@ function renderHistorialFiltrado() {
         const fechaDia = v.fecha.split(' ')[0];
         if (fechaDia !== fechaActual) {
             fechaActual = fechaDia;
-            lista.innerHTML += `<div class="separador-fecha">📅 VENTAS DEL ${fechaActual}</div>`;
+            lista.innerHTML += `<div class="separador-fecha" style="background: #e2e2e2; padding: 5px; margin: 10px 0; font-weight: bold; border-radius: 5px; text-align: center;">📅 VENTAS DEL ${fechaActual}</div>`;
         }
         acumulado += v.total;
         lista.innerHTML += `
-            <div class="linea-historial">
+            <div class="linea-historial" style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 10px 0;">
                 <div>
                     <strong style="color: #5352ed;">${v.ticket}</strong> <small>(${v.fecha.split(' ')[1]})</small><br>
-                    <small>${v.productos.join(', ')}</small>
+                    <small>${v.productos.join(', ')}</small><br>
+                    <small style="color: #666;">Pago: S/ ${v.pagoCon?.toFixed(2) || v.total.toFixed(2)} | Vuelto: S/ ${v.vuelto?.toFixed(2) || '0.00'}</small>
                 </div>
                 <span style="font-weight: bold; color: #2ed573;">S/ ${v.total.toFixed(2)}</span>
             </div>`;
@@ -395,8 +422,11 @@ function exportarExcel() {
     const datosExcel = filtradas.map(v => ({
         "Ticket": v.ticket,
         "Fecha y Hora": v.fecha,
+        "Cliente": v.cliente || "General",
         "Productos": v.productos.join(' | '),
-        "Total (S/)": v.total
+        "Total (S/)": v.total,
+        "Pagó con (S/)": v.pagoCon || v.total,
+        "Vuelto (S/)": v.vuelto || 0
     }));
 
     const hoja = XLSX.utils.json_to_sheet(datosExcel);
