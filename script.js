@@ -278,7 +278,7 @@ function renderBoleta() {
             </div>`;
     });
     document.getElementById('pos-total').innerText = "S/ " + total.toFixed(2);
-    calcularVuelto(); // Recalcula vuelto si cambian los items
+    calcularVuelto(); 
 }
 
 function limpiarCarrito() {
@@ -289,7 +289,20 @@ function limpiarCarrito() {
     mostrarNotificacion("Carrito vaciado");
 }
 
-function finalizarVenta() { 
+// --- GENERACIÓN DE PDF INDIVIDUAL ---
+async function bajarPDFBoleta(nombreArchivo) {
+    const element = document.querySelector('.boleta-card');
+    const opt = {
+        margin: 0,
+        filename: nombreArchivo + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 3, useCORS: true },
+        jsPDF: { unit: 'mm', format: [75, 200], orientation: 'portrait' }
+    };
+    return html2pdf().set(opt).from(element).outputPdf('blob');
+}
+
+async function finalizarVenta() { 
     if(carrito.length > 0) { 
         const totalVenta = carrito.reduce((sum, item) => sum + (item.precio * item.cant), 0);
         const pagoCon = parseFloat(document.getElementById('pago-cliente').value) || totalVenta;
@@ -306,7 +319,9 @@ function finalizarVenta() {
             pagoCon: pagoCon,
             vuelto: Math.max(0, vueltoVal),
             cliente: document.getElementById('cliente-dni').value || "General",
-            productos: carrito.map(i => `${i.cant}x ${i.nombre}`)
+            productos: carrito.map(i => `${i.cant}x ${i.nombre}`),
+            // Guardamos el detalle para poder reconstruir el PDF después si hace falta
+            detalleCarrito: carrito 
         };
         
         db.ref('ventas').push(ventaData);
@@ -318,15 +333,22 @@ function finalizarVenta() {
         document.getElementById('num-ticket').innerText = numTicket;
         document.getElementById('fecha-boleta').innerText = fechaTexto;
         
+        // Descarga automática del PDF para la empresa
+        const pdfBlob = await bajarPDFBoleta(numTicket);
+        const url = URL.createObjectURL(pdfBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${numTicket}.pdf`;
+        link.click();
+
         window.print(); 
         
-        // Limpiar todo después de la venta
         carrito = []; 
         document.getElementById('pago-cliente').value = "";
         document.getElementById('vuelto-cliente').innerText = "S/ 0.00";
         document.getElementById('cliente-dni').value = "";
         renderBoleta(); 
-        mostrarNotificacion("✅ Venta registrada");
+        mostrarNotificacion("✅ Venta y PDF generados");
     } else {
         mostrarNotificacion("El carrito está vacío");
     }
@@ -350,7 +372,7 @@ function filtrarPOS(val) {
     });
 }
 
-// --- HISTORIAL Y EXCEL ---
+// --- HISTORIAL ---
 db.ref('ventas').on('value', (snapshot) => {
     const ventas = snapshot.val();
     todasLasVentas = [];
@@ -398,11 +420,84 @@ function renderHistorialFiltrado() {
                     <small>${v.productos.join(', ')}</small><br>
                     <small style="color: #666;">Pago: S/ ${v.pagoCon?.toFixed(2) || v.total.toFixed(2)} | Vuelto: S/ ${v.vuelto?.toFixed(2) || '0.00'}</small>
                 </div>
-                <span style="font-weight: bold; color: #2ed573;">S/ ${v.total.toFixed(2)}</span>
+                <div style="text-align: right;">
+                    <span style="font-weight: bold; color: #2ed573;">S/ ${v.total.toFixed(2)}</span><br>
+                    <button onclick="reimprimirTicket('${v.id}')" style="border:none; background:none; cursor:pointer; font-size:12px; color:var(--primary);">📄 PDF</button>
+                </div>
             </div>`;
     });
     
     if(displayTotal) displayTotal.innerText = `Total Seleccionado: S/ ${acumulado.toFixed(2)}`;
+}
+
+// --- DESCARGA GLOBAL ZIP ---
+async function descargarTodoPDF() {
+    const fDesde = document.getElementById('filtro-desde').value;
+    const fHasta = document.getElementById('filtro-hasta').value;
+    
+    let filtradas = todasLasVentas.filter(v => {
+        if (!fDesde && !fHasta) return true;
+        const partes = v.fecha.split(' ')[0].split('/'); 
+        const fechaVenta = new Date(partes[2], partes[1] - 1, partes[0]);
+        const desde = fDesde ? new Date(fDesde + "T00:00:00") : null;
+        const hasta = fHasta ? new Date(fHasta + "T23:59:59") : null;
+        return (!desde || fechaVenta >= desde) && (!hasta || fechaVenta <= hasta);
+    });
+
+    if (filtradas.length === 0) return mostrarNotificacion("No hay boletas para descargar");
+
+    mostrarNotificacion("⚙️ Generando ZIP, espera...");
+    const zip = new JSZip();
+
+    for (let v of filtradas) {
+        // Renderizamos temporalmente los datos en la boleta para "sacar la foto"
+        document.getElementById('num-ticket').innerText = v.ticket;
+        document.getElementById('fecha-boleta').innerText = v.fecha;
+        document.getElementById('pos-total').innerText = "S/ " + v.total.toFixed(2);
+        document.getElementById('pago-cliente').value = v.pagoCon;
+        document.getElementById('vuelto-cliente').innerText = "S/ " + v.vuelto.toFixed(2);
+        document.getElementById('cliente-dni').value = v.cliente;
+
+        // Limpiar y llenar items para el PDF
+        const box = document.getElementById('carrito-items');
+        box.innerHTML = "";
+        v.productos.forEach(prodStr => {
+            box.innerHTML += `<div class="item-boleta-linea"><small>${prodStr}</small></div>`;
+        });
+
+        const pdfBlob = await bajarPDFBoleta(v.ticket);
+        zip.file(`${v.ticket}.pdf`, pdfBlob);
+    }
+
+    const content = await zip.generateAsync({type:"blob"});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(content);
+    link.download = `Boletas_VaneStore_${new Date().toISOString().slice(0,10)}.zip`;
+    link.click();
+    mostrarNotificacion("✅ ZIP Descargado");
+    
+    // Al final, limpiar la boleta para que no quede con datos viejos
+    limpiarCarrito();
+}
+
+function reimprimirTicket(id) {
+    const v = todasLasVentas.find(x => x.id === id);
+    if(v) {
+        // Cargar datos en la boleta visual para poder imprimir
+        document.getElementById('num-ticket').innerText = v.ticket;
+        document.getElementById('fecha-boleta').innerText = v.fecha;
+        document.getElementById('pos-total').innerText = "S/ " + v.total.toFixed(2);
+        document.getElementById('vuelto-cliente').innerText = "S/ " + v.vuelto.toFixed(2);
+        document.getElementById('cliente-dni').value = v.cliente;
+        
+        const box = document.getElementById('carrito-items');
+        box.innerHTML = "";
+        v.productos.forEach(prodStr => {
+            box.innerHTML += `<div class="item-boleta-linea"><small>${prodStr}</small></div>`;
+        });
+        
+        window.print();
+    }
 }
 
 function exportarExcel() {

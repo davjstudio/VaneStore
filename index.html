@@ -107,44 +107,60 @@
         </section>
 
         <section class="checkout-section">
-            <div class="boleta-card">
+            <div class="boleta-card" id="ticket-imprimir">
                 <div class="boleta-header">
-                    <h2 style="margin:0;">VANE STORE</h2>
-                    <p style="margin:2px 0; font-size: 0.8rem;">RUC: 10612629230</p>
-                    <p style="margin:2px 0; font-size: 0.8rem;">Calle 7 #170 Av. Buenos Aires</p>
-                    <hr>
-                    <div id="fecha-boleta" style="font-size: 0.75rem;"></div>
-                    <div id="num-ticket" style="font-weight: bold; margin-bottom: 5px;"></div>
-                    
-                    <div style="text-align: left; margin-top: 10px;">
-                        <small>Vendedor:</small><br>
+                    <h2>VANE STORE</h2>
+                    <p>RUC: 10612629230</p>
+                    <p>Calle 7 #170 Av. Buenos Aires</p>
+                    <div id="fecha-boleta"></div>
+                    <div id="num-ticket"></div>
+                </div>
+
+                <div class="info-ticket">
+                    <div class="fila-info">
+                        <span>Vendedor:</span>
                         <input type="text" id="vendedor-nombre" value="Personal" readonly>
-                        <br>
-                        <small>Cliente (DNI/RUC):</small><br>
-                        <input type="text" id="cliente-dni" placeholder="________">
+                    </div>
+                    <div class="fila-info">
+                        <span>Cliente (DNI/RUC):</span>
+                        <input type="text" id="cliente-dni" placeholder="12345678">
                     </div>
                 </div>
 
-                <div id="carrito-items" class="carrito-items"></div>
+                <div class="divisor-ticket">--------------------------------</div>
 
-                <div class="boleta-footer">
-                    <div class="total-row total-final">
+                <div id="carrito-items" class="carrito-items">
+                    </div>
+
+                <div class="divisor-ticket"></div>
+
+                <div class="seccion-totales">
+                    <div class="total-final">
                         <span>TOTAL A PAGAR:</span>
                         <span id="pos-total">S/ 0.00</span>
                     </div>
 
-                    <div class="total-row">
+                    <div class="fila-pago">
                         <span>Paga con:</span>
-                        <div style="display: flex; align-items: center; gap: 5px;">
-                            <span style="font-weight: 700; font-size: 1.1rem;">S/</span>
+                        <div class="input-pago-wrapper">
+                            <span>S/</span>
                             <input type="number" id="pago-cliente" placeholder="0.00" oninput="calcularVuelto()">
                         </div>
                     </div>
-                    <div class="total-row" style="color: #2ed573; font-weight: 800; margin-bottom: 15px;">
+                    
+                    <div class="fila-vuelto">
                         <span>Vuelto:</span>
                         <span id="vuelto-cliente">S/ 0.00</span>
                     </div>
-                    
+                </div>
+
+                <div class="footer-ticket">
+                    <p>********************************</p>
+                    <p>¡GRACIAS POR TU COMPRA EN VANE STORE!</p>
+                    <p>********************************</p>
+                </div>
+                
+                <div class="no-print">
                     <button class="btn-confirmar" onclick="finalizarVenta()">PAGAR E IMPRIMIR</button>
                     <button class="btn-vaciar" onclick="limpiarCarrito()">Vaciar Carrito</button>
                 </div>
@@ -195,6 +211,7 @@
                 <h2 style="margin:0;">📋 Historial de Ventas</h2>
                 <div style="display: flex; gap: 5px;">
                     <button onclick="exportarExcel()" style="background: #2ed573; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">📊 Excel</button>
+                    <button onclick="descargarTodoPDF()" style="background: #e67e22; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">📦 Descargar ZIP</button>
                     <button onclick="limpiarHistorialTotal()" style="background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">Limpiar Todo</button>
                 </div>
             </div>
@@ -211,8 +228,7 @@
                 <button onclick="renderHistorialFiltrado()" style="margin-top: 15px; background: #5352ed; color: white; border: none; padding: 7px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">Filtrar</button>
             </div>
             
-            <div id="lista-ventas" style="max-height: 500px; overflow-y: auto; text-align: left;">
-                </div>
+            <div id="lista-ventas" style="max-height: 500px; overflow-y: auto; text-align: left;"></div>
 
             <div style="margin-top: 20px; border-top: 2px solid #eee; padding-top: 15px; text-align: right;">
                 <h3 id="total-dia" style="color: #2ed573;">Total Seleccionado: S/ 0.00</h3>
@@ -249,7 +265,10 @@
       const db = firebase.database();
     </script>
 
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
     <script src="script.js"></script>
 </body>
 </html>
