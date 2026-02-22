@@ -1,3 +1,16 @@
+// --- CONFIGURACIÓN DE SEGURIDAD (NUEVO) ---
+// Comprobar acceso antes de cargar nada
+if (sessionStorage.getItem('acceso_vane') !== 'autorizado') {
+    window.location.href = 'pin.html';
+}
+
+// Busca tu función cerrarSesion y cámbiala por esta:
+function cerrarSesion() {
+    sessionStorage.removeItem('acceso_vane');
+    sessionStorage.clear();
+    window.location.href = 'pin.html';
+}
+
 // --- CONFIGURACIÓN INICIAL ---
 let productos = []; 
 let carrito = [];
@@ -234,20 +247,64 @@ function calcularVuelto() {
     document.getElementById('vuelto-cliente').innerText = `S/ ${Math.max(0, vuelto).toFixed(2)}`;
 }
 
-// --- CARRITO Y VENTAS ---
+// --- CARRITO Y VENTAS (CON MODAL INTEGRADO) ---
+let productoSeleccionadoID = null;
+
 function agregarCarrito(id) {
     const p = productos.find(x => x.id === id);
     if(p) {
         if(parseInt(p.stock) <= 0) return mostrarNotificacion("❌ Sin stock");
-        const item = carrito.find(x => x.id === id);
-        if(item) {
-            if(item.cant < parseInt(p.stock)) item.cant++;
-            else return mostrarNotificacion("⚠️ Límite de stock");
-        } else {
-            carrito.push({...p, cant: 1});
-        }
-        renderBoleta();
+        
+        productoSeleccionadoID = id;
+        document.getElementById('cant-prod-nombre').innerText = p.nombre;
+        document.getElementById('input-cantidad-manual').value = 1;
+        
+        // Mostrar el modal
+        document.getElementById('modal-cantidad').style.display = 'flex';
+        
+        // Seleccionar automáticamente el número
+        setTimeout(() => {
+            const input = document.getElementById('input-cantidad-manual');
+            if(input){
+                input.focus();
+                input.select();
+            }
+        }, 100);
     }
+}
+
+function setCantPreset(valor) {
+    document.getElementById('input-cantidad-manual').value = valor;
+}
+
+function cerrarModalCantidad() {
+    document.getElementById('modal-cantidad').style.display = 'none';
+    productoSeleccionadoID = null;
+}
+
+function confirmarAgregarCarrito() {
+    const p = productos.find(x => x.id === productoSeleccionadoID);
+    const inputVal = document.getElementById('input-cantidad-manual').value;
+    const cantPedida = parseInt(inputVal) || 0;
+
+    if (cantPedida <= 0) return mostrarNotificacion("❌ Ingresa una cantidad válida");
+
+    const itemExistente = carrito.find(x => x.id === productoSeleccionadoID);
+    const cantEnCarrito = itemExistente ? itemExistente.cant : 0;
+
+    if ((cantEnCarrito + cantPedida) > parseInt(p.stock)) {
+        return mostrarNotificacion(`⚠️ Solo quedan ${p.stock} en stock en total`);
+    }
+
+    if(itemExistente) {
+        itemExistente.cant += cantPedida;
+    } else {
+        carrito.push({...p, cant: cantPedida});
+    }
+
+    renderBoleta();
+    cerrarModalCantidad();
+    mostrarNotificacion(`✅ ${cantPedida} x ${p.nombre} agregado`);
 }
 
 function quitarUno(id) {
@@ -320,7 +377,6 @@ async function finalizarVenta() {
             vuelto: Math.max(0, vueltoVal),
             cliente: document.getElementById('cliente-dni').value || "General",
             productos: carrito.map(i => `${i.cant}x ${i.nombre}`),
-            // Guardamos el detalle para poder reconstruir el PDF después si hace falta
             detalleCarrito: carrito 
         };
         
@@ -333,7 +389,6 @@ async function finalizarVenta() {
         document.getElementById('num-ticket').innerText = numTicket;
         document.getElementById('fecha-boleta').innerText = fechaTexto;
         
-        // Descarga automática del PDF para la empresa
         const pdfBlob = await bajarPDFBoleta(numTicket);
         const url = URL.createObjectURL(pdfBlob);
         const link = document.createElement('a');
@@ -450,7 +505,6 @@ async function descargarTodoPDF() {
     const zip = new JSZip();
 
     for (let v of filtradas) {
-        // Renderizamos temporalmente los datos en la boleta para "sacar la foto"
         document.getElementById('num-ticket').innerText = v.ticket;
         document.getElementById('fecha-boleta').innerText = v.fecha;
         document.getElementById('pos-total').innerText = "S/ " + v.total.toFixed(2);
@@ -458,7 +512,6 @@ async function descargarTodoPDF() {
         document.getElementById('vuelto-cliente').innerText = "S/ " + v.vuelto.toFixed(2);
         document.getElementById('cliente-dni').value = v.cliente;
 
-        // Limpiar y llenar items para el PDF
         const box = document.getElementById('carrito-items');
         box.innerHTML = "";
         v.productos.forEach(prodStr => {
@@ -476,14 +529,12 @@ async function descargarTodoPDF() {
     link.click();
     mostrarNotificacion("✅ ZIP Descargado");
     
-    // Al final, limpiar la boleta para que no quede con datos viejos
     limpiarCarrito();
 }
 
 function reimprimirTicket(id) {
     const v = todasLasVentas.find(x => x.id === id);
     if(v) {
-        // Cargar datos en la boleta visual para poder imprimir
         document.getElementById('num-ticket').innerText = v.ticket;
         document.getElementById('fecha-boleta').innerText = v.fecha;
         document.getElementById('pos-total').innerText = "S/ " + v.total.toFixed(2);
@@ -530,3 +581,15 @@ function exportarExcel() {
     XLSX.writeFile(libro, `Reporte_VaneStore_${new Date().toISOString().slice(0,10)}.xlsx`);
     mostrarNotificacion("📊 Excel generado");
 }
+
+// Permitir presionar "Enter" dentro del input del modal para confirmar rápidamente
+document.addEventListener('DOMContentLoaded', () => {
+    const inputCant = document.getElementById('input-cantidad-manual');
+    if(inputCant) {
+        inputCant.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                confirmarAgregarCarrito();
+            }
+        });
+    }
+});

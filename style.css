@@ -251,7 +251,7 @@ body {
 @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes fadeOut { to { transform: translateY(-20px); opacity: 0; } }
 
-/* --- MODAL --- */
+/* --- MODAL GENERAL --- */
 .modal-vane {
     display: none; position: fixed; top: 0; left: 0;
     width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6);
@@ -283,11 +283,9 @@ body {
     @page { margin: 0; size: auto; }
     html, body { height: auto; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #fff; }
     
-    /* Ocultar todo excepto la boleta */
     body * { visibility: hidden; }
     .boleta-card, .boleta-card * { visibility: visible; }
     
-    /* ESTO ASEGURA QUE NI EN PAPEL NI EN PDF SALGAN LOS BOTONES */
     .btn-quitar-item, 
     .btn-confirmar, 
     .btn-vaciar, 
@@ -304,3 +302,84 @@ body {
         max-width: 75mm; padding: 5mm; box-shadow: none; border: none;
     }
 }
+
+/* --- ESTILOS PANTALLA DE BLOQUEO --- */
+#bloqueo-pantalla {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: linear-gradient(135deg, #2f3542 0%, #1e2124 100%);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-family: 'Poppins', sans-serif;
+}
+
+.login-card {
+    background: white;
+    padding: 40px;
+    border-radius: 30px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 350px;
+    color: #2f3542;
+}
+
+.login-card img { width: 120px; margin-bottom: 20px; }
+.login-card h2 { margin: 0 0 10px 0; font-size: 1.5rem; font-weight: 800; }
+.login-card h2 span { color: #00b4cc; }
+.login-card p { font-size: 0.9rem; color: #666; margin-bottom: 25px; }
+
+.pin-input-container { display: flex; flex-direction: column; gap: 15px; }
+
+#pin-input {
+    padding: 15px; font-size: 24px; text-align: center; letter-spacing: 10px;
+    border: 2px solid #f1f2f6; border-radius: 15px; outline: none; transition: 0.3s;
+    background: #f8f9fa;
+}
+#pin-input:focus { border-color: #00b4cc; }
+
+.btn-entrar {
+    background: #00b4cc; color: white; border: none; padding: 15px;
+    border-radius: 15px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.3s;
+}
+.btn-entrar:hover { background: #0097ad; transform: translateY(-2px); }
+
+#error-pin { color: #ff4757; font-size: 0.85rem; margin-top: 10px; font-weight: 600; display: none; }
+
+.btn-cerrar-sesion {
+    background-color: #ff4757; color: white; border: none; padding: 8px 15px;
+    border-radius: 8px; font-weight: bold; cursor: pointer;
+    font-family: 'Poppins', sans-serif; transition: 0.3s;
+}
+.btn-cerrar-sesion:hover { background-color: #ff6b81; transform: scale(1.05); }
+
+.footer-studio a, .link-davj {
+    color: #ffffff !important; text-decoration: none !important;
+    font-weight: bold !important; border-bottom: none !important; outline: none !important;
+}
+.footer-studio a:hover, .link-davj:hover {
+    color: #00b4cc !important; text-decoration: none !important; opacity: 0.8;
+}
+
+/* --- ESTILOS DEL MODAL DE CANTIDAD (NUEVO) --- */
+.input-cantidad-gigante {
+    width: 100%; padding: 15px; font-size: 2rem; text-align: center;
+    border: 2px solid #f1f2f6; border-radius: 15px; margin-bottom: 15px;
+    box-sizing: border-box; font-weight: bold; color: #2f3542; outline: none; transition: 0.3s;
+}
+.input-cantidad-gigante:focus { border-color: #00b4cc; }
+
+.cantidad-selector {
+    display: flex; justify-content: space-between; gap: 10px; margin-bottom: 20px;
+}
+.btn-cant-pre {
+    flex: 1; background: #f1f2f6; border: 2px solid transparent; padding: 10px 5px;
+    border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s;
+    font-size: 0.8rem; color: #57606f;
+}
+.btn-cant-pre:hover { border-color: #00b4cc; color: #00b4cc; background: white; }
