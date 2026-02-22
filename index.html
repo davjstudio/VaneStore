@@ -1,586 +1,303 @@
 <!DOCTYPE html>
-
 <html lang="es">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Vane Store</title>
-
-   
-
+    
     <link rel="icon" href="logo-vane.png" type="image/png">
-
-   
-
+    
     <link rel="stylesheet" href="style.css">
-
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-
+    
     <style>
-
         /* --- ESTILOS PARA LA MARCA DE AGUA (WATERMARK) --- */
-
         .boleta-card {
-
             position: relative;
-
             z-index: 1;
-
             overflow: hidden;
-
         }
-
-
 
         .boleta-card::before {
-
             content: "";
-
             position: absolute;
-
             top: 50%;
-
             left: 50%;
-
             transform: translate(-50%, -50%) rotate(-20deg);
-
             width: 280px;
-
             height: 280px;
-
             background-image: url('logo-vane.png');
-
             background-size: contain;
-
             background-repeat: no-repeat;
-
             background-position: center;
-
             opacity: 0.08;
-
             pointer-events: none;
-
             z-index: -1;
-
         }
-
-
 
         @media print {
-
             .boleta-card::before {
-
                 visibility: visible !important;
-
                 opacity: 0.12 !important;
-
                 -webkit-print-color-adjust: exact !important;
-
                 print-color-adjust: exact !important;
-
             }
-
         }
-
-
 
         /* --- ESTILOS PARA EL MODAL DE CONFIRMACIÓN --- */
-
         .modal-vane {
-
             display: none;
-
             position: fixed;
-
             top: 0; left: 0;
-
             width: 100%; height: 100%;
-
             background: rgba(0, 0, 0, 0.6);
-
             backdrop-filter: blur(5px);
-
             z-index: 9999;
-
             align-items: center;
-
             justify-content: center;
-
         }
-
-
 
         .modal-contenido {
-
             background: white;
-
             padding: 30px;
-
             border-radius: 20px;
-
             text-align: center;
-
             width: 90%;
-
             max-width: 400px;
-
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-
             animation: aparecer 0.3s ease;
-
         }
-
-
 
         @keyframes aparecer {
-
             from { transform: scale(0.8); opacity: 0; }
-
             to { transform: scale(1); opacity: 1; }
-
         }
-
-
 
         .modal-icono { font-size: 3rem; margin-bottom: 10px; }
-
         .modal-botones { display: flex; gap: 10px; margin-top: 25px; }
 
-
-
         .btn-modal-si {
-
             flex: 1; background: #ff4757; color: white;
-
             border: none; padding: 12px; border-radius: 10px;
-
             font-weight: 800; cursor: pointer; font-family: 'Poppins', sans-serif;
-
         }
-
-
 
         .btn-modal-no {
-
             flex: 1; background: #f1f2f6; color: #2f3542;
-
             border: none; padding: 12px; border-radius: 10px;
-
             font-weight: 800; cursor: pointer; font-family: 'Poppins', sans-serif;
-
         }
-
     </style>
-
 </head>
-
 <body>
-
     <header class="main-header">
-
         <div class="logo">VANE <span>STORE</span></div>
-
         <nav class="menu-superior">
-
             <button onclick="mostrarSeccion('pos')" class="btn-nav">🛒 Ventas</button>
-
             <button onclick="mostrarSeccion('registro')" class="btn-nav btn-accent">📦 Nueva Mercadería</button>
-
             <button onclick="mostrarSeccion('historial')" class="btn-nav" style="background: #2f3542; color: white;">📋 Historial</button>
-
             <button onclick="cerrarSesion()" class="btn-cerrar-sesion">🔒 Cerrar Sistema</button>
-
         </nav>
-
     </header>
 
-
-
     <main id="sec-pos" class="pos-container">
-
         <section class="catalog-section">
-
             <div class="search-wrapper">
-
                 <input type="text" id="pos-search" placeholder="Escanea código o busca producto..." onkeyup="filtrarPOS(this.value)" autofocus>
-
             </div>
-
             <div id="grid-productos" class="grid-productos"></div>
-
         </section>
 
-
-
         <section class="checkout-section">
-
             <div class="boleta-card" id="ticket-imprimir">
-
                 <div class="boleta-header">
-
                     <h2>VANE STORE</h2>
-
                     <p>RUC: 10612629230</p>
-
                     <p>Calle 7 #170 Av. Buenos Aires</p>
-
                     <div id="fecha-boleta"></div>
-
                     <div id="num-ticket"></div>
-
                 </div>
-
-
 
                 <div class="info-ticket">
-
                     <div class="fila-info">
-
                         <span>Vendedor:</span>
-
                         <input type="text" id="vendedor-nombre" value="Personal" readonly>
-
                     </div>
-
                     <div class="fila-info">
-
                         <span>Cliente (DNI/RUC):</span>
-
                         <input type="text" id="cliente-dni" placeholder="12345678">
-
                     </div>
-
                 </div>
-
-
 
                 <div class="divisor-ticket">--------------------------------</div>
 
-
-
-                <div id="carrito-items" class="carrito-items">
-
-                    </div>
-
-
+                <div id="carrito-items" class="carrito-items"></div>
 
                 <div class="divisor-ticket"></div>
 
-
-
                 <div class="seccion-totales">
-
                     <div class="total-final">
-
                         <span>TOTAL A PAGAR:</span>
-
                         <span id="pos-total">S/ 0.00</span>
-
                     </div>
-
-
 
                     <div class="fila-pago">
-
                         <span>Paga con:</span>
-
                         <div class="input-pago-wrapper">
-
                             <span>S/</span>
-
                             <input type="number" id="pago-cliente" placeholder="0.00" oninput="calcularVuelto()">
-
                         </div>
-
                     </div>
-
-                   
-
+                    
                     <div class="fila-vuelto">
-
                         <span>Vuelto:</span>
-
                         <span id="vuelto-cliente">S/ 0.00</span>
-
                     </div>
-
                 </div>
-
-
 
                 <div class="footer-ticket">
-
                     <p>********************************</p>
-
                     <p>¡GRACIAS POR TU COMPRA EN VANE STORE!</p>
-
                     <p>********************************</p>
-
                 </div>
-
-               
-
+                
                 <div class="no-print">
-
                     <button class="btn-confirmar" onclick="finalizarVenta()">PAGAR E IMPRIMIR</button>
-
                     <button class="btn-vaciar" onclick="limpiarCarrito()">Vaciar Carrito</button>
-
                 </div>
-
             </div>
-
         </section>
-
     </main>
 
-
-
     <section id="sec-registro" class="container-registro" style="display:none;">
-
         <div class="card-registro">
-
             <h2>📦 Registro de Mercadería</h2>
-
             <div class="form-body">
-
                 <div class="camera-box">
-
                     <label>Foto del Producto</label>
-
                     <video id="video" autoplay playsinline></video>
-
                     <canvas id="canvas" style="display:none;"></canvas>
-
-                   
-
+                    
                     <button type="button" class="btn-snap" onclick="tomarFoto()">📸 CAPTURAR FOTO</button>
 
-
-
                     <div style="text-align: center; margin-bottom: 15px; border-top: 1px solid #eee; padding-top: 10px;">
-
                         <p style="font-size: 0.8rem; color: #666; margin: 5px 0;">O selecciona una imagen de tu equipo:</p>
-
                         <input type="file" id="file-input" accept="image/*" onchange="cargarImagenDesdeArchivo(event)">
-
                     </div>
-
-
 
                     <div id="wrapper-preview" style="display:none;">
-
                         <img id="img-preview" src="">
-
                         <button type="button" class="btn-borrar-foto" onclick="borrarFotoActual()">✕</button>
-
                     </div>
-
                 </div>
-
-               
-
+                
                 <div class="form-group" style="margin-top: 15px;">
-
                     <input type="text" id="prod-codigo" placeholder="Código de Barras (Escanea)">
-
                 </div>
-
                 <div class="form-group">
-
                     <input type="text" id="prod-nombre" placeholder="Nombre del Producto">
-
                 </div>
-
                 <div class="grid-inputs">
-
                     <input type="number" id="prod-precio" placeholder="Precio Venta S/">
-
                     <input type="number" id="prod-stock" placeholder="Stock Inicial">
-
                 </div>
-
                 <button class="btn-guardar-prod" onclick="guardarLocal()">GUARDAR EN INVENTARIO</button>
-
             </div>
-
         </div>
-
     </section>
-
-
 
     <section id="sec-historial" class="container-registro" style="display:none; flex-direction: column; align-items: center;">
-
         <div class="card-registro" style="max-width: 800px; width: 95%;">
-
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-
                 <h2 style="margin:0;">📋 Historial de Ventas</h2>
-
                 <div style="display: flex; gap: 5px;">
-
                     <button onclick="exportarExcel()" style="background: #2ed573; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">📊 Excel</button>
-
                     <button onclick="descargarTodoPDF()" style="background: #e67e22; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">📦 Descargar ZIP</button>
-
                     <button onclick="limpiarHistorialTotal()" style="background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">Limpiar Todo</button>
-
                 </div>
-
             </div>
-
-
 
             <div style="background: #f1f2f6; padding: 15px; border-radius: 12px; margin-bottom: 15px; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;">
-
                 <div>
-
                     <small>Desde:</small><br>
-
                     <input type="date" id="filtro-desde" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc; font-family: 'Poppins', sans-serif;">
-
                 </div>
-
                 <div>
-
                     <small>Hasta:</small><br>
-
                     <input type="date" id="filtro-hasta" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc; font-family: 'Poppins', sans-serif;">
-
                 </div>
-
                 <button onclick="renderHistorialFiltrado()" style="margin-top: 15px; background: #5352ed; color: white; border: none; padding: 7px 15px; border-radius: 8px; cursor: pointer; font-weight: bold;">Filtrar</button>
-
             </div>
-
-           
-
+            
             <div id="lista-ventas" style="max-height: 500px; overflow-y: auto; text-align: left;"></div>
 
-
-
             <div style="margin-top: 20px; border-top: 2px solid #eee; padding-top: 15px; text-align: right;">
-
                 <h3 id="total-dia" style="color: #2ed573;">Total Seleccionado: S/ 0.00</h3>
-
             </div>
-
         </div>
-
     </section>
 
-
-
     <div id="modal-confirmacion" class="modal-vane">
-
         <div class="modal-contenido">
-
             <div class="modal-icono">⚠️</div>
-
             <h3 id="modal-titulo" style="margin: 0; font-weight: 800;">¿Estás seguro(a)?</h3>
-
             <p id="modal-mensaje" style="color: #666; font-size: 0.9rem; margin-top: 10px;">Esta acción no se puede deshacer.</p>
-
             <div class="modal-botones">
-
                 <button id="btn-confirmar-accion" class="btn-modal-si">SÍ, CONTINUAR</button>
-
                 <button onclick="cerrarModal()" class="btn-modal-no">CANCELAR</button>
-
             </div>
-
         </div>
-
     </div>
 
-
+    <div id="modal-cantidad" class="modal-vane">
+        <div class="modal-contenido" style="max-width: 350px;">
+            <h3 id="cant-prod-nombre" style="color: #00b4cc; margin-top: 0;">Producto</h3>
+            <p style="font-size: 0.9rem; color: #666;">Ingresa o selecciona la cantidad:</p>
+            
+            <input type="number" id="input-cantidad-manual" value="1" min="1" class="input-cantidad-gigante">
+            
+            <div class="cantidad-selector">
+                <button class="btn-cant-pre" onclick="setCantPreset(1)">1 Unid.</button>
+                <button class="btn-cant-pre" onclick="setCantPreset(6)">Media Doc.</button>
+                <button class="btn-cant-pre" onclick="setCantPreset(12)">1 Docena</button>
+            </div>
+            
+            <div class="modal-botones">
+                <button class="btn-modal-si" style="background: #2ed573;" onclick="confirmarAgregarCarrito()">AGREGAR</button>
+                <button class="btn-modal-no" onclick="cerrarModalCantidad()">CANCELAR</button>
+            </div>
+        </div>
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-
-
-    <script>
-
-      // 1. CONFIGURACIÓN FIREBASE
-
-      const firebaseConfig = {
-
-        apiKey: "AIzaSyCxeL-OTNLP3qluo-S5OuSWcWjYEjU4w5s",
-
-        authDomain: "vanestore-pos.firebaseapp.com",
-
-        databaseURL: "https://vanestore-pos-default-rtdb.europe-west1.firebasedatabase.app",
-
-        projectId: "vanestore-pos",
-
-        storageBucket: "vanestore-pos.firebasestorage.app",
-
-        messagingSenderId: "559830889362",
-
-        appId: "1:559830889362:web:b851f538a173194512c74b"
-
-      };
-
-      firebase.initializeApp(firebaseConfig);
-
-      const db = firebase.database();
-
-
-
-      // ✅ PEGA ESTO EN TU INDEX.HTML:
-
-        (function() {
-
-            // Si no ha iniciado sesión, mandarlo a la pantalla de PIN elegante
-
-            if (sessionStorage.getItem('acceso_vane') !== 'autorizado') {
-
-                window.location.href = 'pin.html';
-
-            }
-
-        })();
-
-    </script>
-
-
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
-   
+    <script>
+      // 1. CONFIGURACIÓN FIREBASE
+      const firebaseConfig = {
+        apiKey: "AIzaSyCxeL-OTNLP3qluo-S5OuSWcWjYEjU4w5s",
+        authDomain: "vanestore-pos.firebaseapp.com",
+        databaseURL: "https://vanestore-pos-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "vanestore-pos",
+        storageBucket: "vanestore-pos.firebasestorage.app",
+        messagingSenderId: "559830889362",
+        appId: "1:559830889362:web:b851f538a173194512c74b"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+
+      // Control de acceso
+      (function() {
+          if (sessionStorage.getItem('acceso_vane') !== 'autorizado') {
+              window.location.href = 'pin.html';
+          }
+      })();
+    </script>
 
     <script src="script.js"></script>
-<div id="modal-cantidad" class="modal-vane">
-    <div class="modal-contenido" style="max-width: 350px;">
-        <h3 id="cant-prod-nombre" style="color: #00b4cc; margin-top: 0;">Producto</h3>
-        <p style="font-size: 0.9rem; color: #666;">Ingresa o selecciona la cantidad:</p>
-        
-        <input type="number" id="input-cantidad-manual" value="1" min="1" class="input-cantidad-gigante">
-        
-        <div class="cantidad-selector">
-            <button class="btn-cant-pre" onclick="setCantPreset(1)">1 Unid.</button>
-            <button class="btn-cant-pre" onclick="setCantPreset(6)">Media Doc.</button>
-            <button class="btn-cant-pre" onclick="setCantPreset(12)">1 Docena</button>
-        </div>
-        
-        <div class="modal-botones">
-            <button class="btn-modal-si" style="background: #2ed573;" onclick="confirmarAgregarCarrito()">AGREGAR</button>
-            <button class="btn-modal-no" onclick="cerrarModalCantidad()">CANCELAR</button>
-        </div>
-    </div>
-</div>
 
 </body>
-
 </html>

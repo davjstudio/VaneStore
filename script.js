@@ -1,10 +1,8 @@
-// --- CONFIGURACIÓN DE SEGURIDAD (NUEVO) ---
-// Comprobar acceso antes de cargar nada
+// --- CONFIGURACIÓN DE SEGURIDAD ---
 if (sessionStorage.getItem('acceso_vane') !== 'autorizado') {
     window.location.href = 'pin.html';
 }
 
-// Busca tu función cerrarSesion y cámbiala por esta:
 function cerrarSesion() {
     sessionStorage.removeItem('acceso_vane');
     sessionStorage.clear();
@@ -192,7 +190,7 @@ document.getElementById('btn-confirmar-accion').onclick = function() {
     }
 };
 
-// --- RENDERIZADO ---
+// --- RENDERIZADO TIENDA ---
 function renderTienda() {
     const grid = document.getElementById('grid-productos');
     if(!grid) return;
@@ -247,7 +245,7 @@ function calcularVuelto() {
     document.getElementById('vuelto-cliente').innerText = `S/ ${Math.max(0, vuelto).toFixed(2)}`;
 }
 
-// --- CARRITO Y VENTAS (CON MODAL INTEGRADO) ---
+// --- CARRITO Y VENTAS ---
 let productoSeleccionadoID = null;
 
 function agregarCarrito(id) {
@@ -259,10 +257,8 @@ function agregarCarrito(id) {
         document.getElementById('cant-prod-nombre').innerText = p.nombre;
         document.getElementById('input-cantidad-manual').value = 1;
         
-        // Mostrar el modal
         document.getElementById('modal-cantidad').style.display = 'flex';
         
-        // Seleccionar automáticamente el número
         setTimeout(() => {
             const input = document.getElementById('input-cantidad-manual');
             if(input){
@@ -320,22 +316,43 @@ function renderBoleta() {
     const box = document.getElementById('carrito-items');
     let total = 0; 
     box.innerHTML = "";
-    carrito.forEach(i => {
-        total += i.precio * i.cant;
+    carrito.forEach((i, index) => {
+        const subtotal = i.precio * i.cant;
+        total += subtotal;
         box.innerHTML += `
-            <div class="item-boleta-linea">
-                <div class="item-info">
-                    <span class="item-cant">${i.cant}x</span>
+            <div class="item-boleta-linea" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 0.85rem;">
+                <div class="item-info" style="flex: 1;">
+                    <span class="item-cant" style="font-weight: 800;">${i.cant}x</span>
                     <span class="item-nombre">${i.nombre}</span>
                 </div>
-                <div class="item-controles">
-                    <span class="item-subtotal">S/ ${(i.precio * i.cant).toFixed(2)}</span>
-                    <button class="btn-quitar-item" onclick="quitarUno('${i.id}')">➖</button>
+                <div class="item-controles" style="display: flex; align-items: center; gap: 5px;">
+                    <div class="precio-editable-container" style="display: flex; align-items: center; background: #f9f9f9; padding: 2px 5px; border-radius: 5px;">
+                        <span style="font-size: 0.7rem;">S/</span>
+                        <input type="number" 
+                               class="input-precio-boleta" 
+                               value="${i.precio.toFixed(2)}" 
+                               step="0.10"
+                               style="width: 50px; border: none; background: transparent; font-weight: bold; text-align: right; font-family: 'Poppins';"
+                               onchange="modificarPrecioCarrito(${index}, this.value)">
+                    </div>
+                    <button class="btn-quitar-item" onclick="quitarUno('${i.id}')" style="background:none; border:none; cursor:pointer;">➖</button>
                 </div>
             </div>`;
     });
     document.getElementById('pos-total').innerText = "S/ " + total.toFixed(2);
     calcularVuelto(); 
+}
+
+function modificarPrecioCarrito(index, nuevoPrecio) {
+    const precioNum = parseFloat(nuevoPrecio);
+    if (isNaN(precioNum) || precioNum < 0) {
+        mostrarNotificacion("❌ Precio no válido");
+        renderBoleta();
+        return;
+    }
+    carrito[index].precio = precioNum;
+    renderBoleta();
+    mostrarNotificacion("💰 Precio ajustado");
 }
 
 function limpiarCarrito() {
@@ -346,7 +363,7 @@ function limpiarCarrito() {
     mostrarNotificacion("Carrito vaciado");
 }
 
-// --- GENERACIÓN DE PDF INDIVIDUAL ---
+// --- GENERACIÓN DE PDF ---
 async function bajarPDFBoleta(nombreArchivo) {
     const element = document.querySelector('.boleta-card');
     const opt = {
@@ -377,7 +394,7 @@ async function finalizarVenta() {
             vuelto: Math.max(0, vueltoVal),
             cliente: document.getElementById('cliente-dni').value || "General",
             productos: carrito.map(i => `${i.cant}x ${i.nombre}`),
-            detalleCarrito: carrito 
+            detalleCarrito: JSON.parse(JSON.stringify(carrito)) 
         };
         
         db.ref('ventas').push(ventaData);
@@ -477,7 +494,7 @@ function renderHistorialFiltrado() {
                 </div>
                 <div style="text-align: right;">
                     <span style="font-weight: bold; color: #2ed573;">S/ ${v.total.toFixed(2)}</span><br>
-                    <button onclick="reimprimirTicket('${v.id}')" style="border:none; background:none; cursor:pointer; font-size:12px; color:var(--primary);">📄 PDF</button>
+                    <button onclick="reimprimirTicket('${v.id}')" style="border:none; background:none; cursor:pointer; font-size:12px; color:#5352ed;">📄 PDF/REIMP</button>
                 </div>
             </div>`;
     });
@@ -509,14 +526,24 @@ async function descargarTodoPDF() {
         document.getElementById('fecha-boleta').innerText = v.fecha;
         document.getElementById('pos-total').innerText = "S/ " + v.total.toFixed(2);
         document.getElementById('pago-cliente').value = v.pagoCon;
-        document.getElementById('vuelto-cliente').innerText = "S/ " + v.vuelto.toFixed(2);
+        document.getElementById('vuelto-cliente').innerText = "S/ " + (v.vuelto ? v.vuelto.toFixed(2) : "0.00");
         document.getElementById('cliente-dni').value = v.cliente;
 
         const box = document.getElementById('carrito-items');
         box.innerHTML = "";
-        v.productos.forEach(prodStr => {
-            box.innerHTML += `<div class="item-boleta-linea"><small>${prodStr}</small></div>`;
-        });
+        if(v.detalleCarrito) {
+            v.detalleCarrito.forEach(i => {
+                box.innerHTML += `
+                    <div class="item-boleta-linea" style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                        <span>${i.cant}x ${i.nombre}</span>
+                        <span>S/ ${i.precio.toFixed(2)}</span>
+                    </div>`;
+            });
+        } else {
+            v.productos.forEach(p => {
+                box.innerHTML += `<div class="item-boleta-linea" style="font-size: 0.85rem;">${p}</div>`;
+            });
+        }
 
         const pdfBlob = await bajarPDFBoleta(v.ticket);
         zip.file(`${v.ticket}.pdf`, pdfBlob);
@@ -538,14 +565,26 @@ function reimprimirTicket(id) {
         document.getElementById('num-ticket').innerText = v.ticket;
         document.getElementById('fecha-boleta').innerText = v.fecha;
         document.getElementById('pos-total').innerText = "S/ " + v.total.toFixed(2);
-        document.getElementById('vuelto-cliente').innerText = "S/ " + v.vuelto.toFixed(2);
+        document.getElementById('vuelto-cliente').innerText = "S/ " + (v.vuelto ? v.vuelto.toFixed(2) : "0.00");
         document.getElementById('cliente-dni').value = v.cliente;
+        document.getElementById('pago-cliente').value = v.pagoCon || v.total;
         
         const box = document.getElementById('carrito-items');
         box.innerHTML = "";
-        v.productos.forEach(prodStr => {
-            box.innerHTML += `<div class="item-boleta-linea"><small>${prodStr}</small></div>`;
-        });
+        
+        if(v.detalleCarrito) {
+            v.detalleCarrito.forEach(i => {
+                box.innerHTML += `
+                    <div class="item-boleta-linea" style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                        <span>${i.cant}x ${i.nombre}</span>
+                        <span>S/ ${i.precio.toFixed(2)}</span>
+                    </div>`;
+            });
+        } else {
+            v.productos.forEach(prodStr => {
+                box.innerHTML += `<div class="item-boleta-linea" style="font-size: 0.85rem;">${prodStr}</div>`;
+            });
+        }
         
         window.print();
     }
@@ -582,7 +621,6 @@ function exportarExcel() {
     mostrarNotificacion("📊 Excel generado");
 }
 
-// Permitir presionar "Enter" dentro del input del modal para confirmar rápidamente
 document.addEventListener('DOMContentLoaded', () => {
     const inputCant = document.getElementById('input-cantidad-manual');
     if(inputCant) {
