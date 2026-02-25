@@ -97,16 +97,20 @@
             <button onclick="mostrarSeccion('registro')" class="btn-nav btn-accent">📦 Nueva Mercadería</button>
             <button onclick="mostrarSeccion('historial')" class="btn-nav" style="background: #2f3542; color: white;">📋 Historial</button>
             <button onclick="cerrarSesion()" class="btn-cerrar-sesion">🔒 Cerrar Sistema</button>
+            <button onclick="toggleDarkMode()" class="btn-nav" style="background: #34495e; color: white;">🌙</button>
         </nav>
     </header>
 
     <main id="sec-pos" class="pos-container">
         <section class="catalog-section">
-            <div class="search-wrapper">
-                <input type="text" id="pos-search" placeholder="Escanea código o busca producto..." onkeyup="filtrarPOS(this.value)" autofocus>
-            </div>
-            <div id="grid-productos" class="grid-productos"></div>
-        </section>
+    <div class="search-wrapper">
+    <div class="input-container-rel">
+        <input type="text" id="pos-search" placeholder="Escanea código o busca producto..." onkeyup="filtrarPOS(this.value)" autofocus>
+        <button id="btn-reset-search" onclick="resetearBuscador()" title="Limpiar búsqueda">✕</button>
+    </div>
+</div>
+    <div id="grid-productos" class="grid-productos"></div>
+</section>
 
         <section class="checkout-section">
             <div class="boleta-card" id="ticket-imprimir">
@@ -276,7 +280,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <script>
-      // 1. CONFIGURACIÓN FIREBASE
       const firebaseConfig = {
         apiKey: "AIzaSyCxeL-OTNLP3qluo-S5OuSWcWjYEjU4w5s",
         authDomain: "vanestore-pos.firebaseapp.com",
@@ -289,7 +292,6 @@
       firebase.initializeApp(firebaseConfig);
       const db = firebase.database();
 
-      // Control de acceso
       (function() {
           if (sessionStorage.getItem('acceso_vane') !== 'autorizado') {
               window.location.href = 'pin.html';

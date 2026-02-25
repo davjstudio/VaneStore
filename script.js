@@ -428,6 +428,13 @@ async function finalizarVenta() {
 
 function filtrarPOS(val) {
     const q = val.toLowerCase();
+    
+    // Si no hay texto, mostramos todo y salimos
+    if (q === "") {
+        document.querySelectorAll('.card-producto').forEach(c => c.style.display = "block");
+        return;
+    }
+
     const exacto = productos.find(p => p.codigo === val);
     if(exacto) { 
         if(parseInt(exacto.stock) <= 0) {
@@ -437,8 +444,11 @@ function filtrarPOS(val) {
         }
         agregarCarrito(exacto.id); 
         document.getElementById('pos-search').value = ""; 
+        // Al agregar uno exacto, reseteamos la vista para mostrar todos de nuevo
+        document.querySelectorAll('.card-producto').forEach(c => c.style.display = "block");
         return;
     }
+    
     document.querySelectorAll('.card-producto').forEach(c => {
         c.style.display = c.innerText.toLowerCase().includes(q) ? "block" : "none";
     });
@@ -631,3 +641,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// --- FUNCIÓN DEL BOTÓN "X" ---
+function resetearBuscador() {
+    const buscador = document.getElementById('pos-search');
+    buscador.value = ""; // Limpia el texto
+    buscador.focus();    // Devuelve el cursor al buscador
+    
+    // Mostramos todos los productos de nuevo sin filtros
+    document.querySelectorAll('.card-producto').forEach(c => {
+        c.style.display = "block";
+    });
+    
+    mostrarNotificacion("🧹 Búsqueda limpiada");
+}
+
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    
+    // Opcional: Guardar la preferencia
+    const esOscuro = document.body.classList.contains('dark-mode');
+    localStorage.setItem('dark-mode', esOscuro);
+}
+
+// Al cargar la página, revisar si ya estaba en modo oscuro
+window.onload = () => {
+    if (localStorage.getItem('dark-mode') === 'true') {
+        document.body.classList.add('dark-mode');
+    }
+};
