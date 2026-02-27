@@ -168,6 +168,15 @@ function limpiarHistorialTotal() {
     document.getElementById('modal-confirmacion').style.display = 'flex';
 }
 
+function prepararEliminarVenta(id, event) {
+    event.stopPropagation();
+    idParaEliminar = id;
+    accionPendiente = "venta_individual";
+    document.getElementById('modal-titulo').innerText = "¿Eliminar esta venta?";
+    document.getElementById('modal-mensaje').innerText = "Se borrará este registro permanentemente.";
+    document.getElementById('modal-confirmacion').style.display = 'flex';
+}
+
 function cerrarModal() {
     document.getElementById('modal-confirmacion').style.display = 'none';
     idParaEliminar = null;
@@ -185,6 +194,12 @@ document.getElementById('btn-confirmar-accion').onclick = function() {
         db.ref('ventas').remove()
             .then(() => {
                 mostrarNotificacion("🗑️ Historial vaciado");
+                cerrarModal();
+            });
+    } else if (accionPendiente === "venta_individual" && idParaEliminar) {
+        db.ref('ventas/' + idParaEliminar).remove()
+            .then(() => {
+                mostrarNotificacion("🗑️ Venta eliminada");
                 cerrarModal();
             });
     }
@@ -235,7 +250,6 @@ function mostrarSeccion(id) {
     }
 }
 
-// --- LÓGICA DE PAGO Y VUELTO ---
 function calcularVuelto() {
     const totalText = document.getElementById('pos-total').innerText.replace('S/ ', '');
     const total = parseFloat(totalText) || 0;
@@ -245,26 +259,19 @@ function calcularVuelto() {
     document.getElementById('vuelto-cliente').innerText = `S/ ${Math.max(0, vuelto).toFixed(2)}`;
 }
 
-// --- CARRITO Y VENTAS ---
 let productoSeleccionadoID = null;
 
 function agregarCarrito(id) {
     const p = productos.find(x => x.id === id);
     if(p) {
         if(parseInt(p.stock) <= 0) return mostrarNotificacion("❌ Sin stock");
-        
         productoSeleccionadoID = id;
         document.getElementById('cant-prod-nombre').innerText = p.nombre;
         document.getElementById('input-cantidad-manual').value = 1;
-        
         document.getElementById('modal-cantidad').style.display = 'flex';
-        
         setTimeout(() => {
             const input = document.getElementById('input-cantidad-manual');
-            if(input){
-                input.focus();
-                input.select();
-            }
+            if(input){ input.focus(); input.select(); }
         }, 100);
     }
 }
@@ -284,19 +291,15 @@ function confirmarAgregarCarrito() {
     const cantPedida = parseInt(inputVal) || 0;
 
     if (cantPedida <= 0) return mostrarNotificacion("❌ Ingresa una cantidad válida");
-
     const itemExistente = carrito.find(x => x.id === productoSeleccionadoID);
     const cantEnCarrito = itemExistente ? itemExistente.cant : 0;
 
     if ((cantEnCarrito + cantPedida) > parseInt(p.stock)) {
-        return mostrarNotificacion(`⚠️ Solo quedan ${p.stock} en stock en total`);
+        return mostrarNotificacion(`⚠️ Solo quedan ${p.stock} en stock`);
     }
 
-    if(itemExistente) {
-        itemExistente.cant += cantPedida;
-    } else {
-        carrito.push({...p, cant: cantPedida});
-    }
+    if(itemExistente) { itemExistente.cant += cantPedida; } 
+    else { carrito.push({...p, cant: cantPedida}); }
 
     renderBoleta();
     cerrarModalCantidad();
@@ -320,22 +323,19 @@ function renderBoleta() {
         const subtotal = i.precio * i.cant;
         total += subtotal;
         box.innerHTML += `
-            <div class="item-boleta-linea" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 0.85rem;">
-                <div class="item-info" style="flex: 1;">
-                    <span class="item-cant" style="font-weight: 800;">${i.cant}x</span>
-                    <span class="item-nombre">${i.nombre}</span>
+            <div class="item-boleta-linea" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9rem; color: #000;">
+                <div style="display: flex; gap: 5px; flex: 1;">
+                    <span style="font-weight: 800; min-width: 25px;">${i.cant}x</span>
+                    <span style="text-transform: uppercase;">${i.nombre}</span>
                 </div>
-                <div class="item-controles" style="display: flex; align-items: center; gap: 5px;">
-                    <div class="precio-editable-container" style="display: flex; align-items: center; background: #f9f9f9; padding: 2px 5px; border-radius: 5px;">
-                        <span style="font-size: 0.7rem;">S/</span>
-                        <input type="number" 
-                               class="input-precio-boleta" 
-                               value="${i.precio.toFixed(2)}" 
-                               step="0.10"
-                               style="width: 50px; border: none; background: transparent; font-weight: bold; text-align: right; font-family: 'Poppins';"
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <div style="font-weight: 800; display: flex; align-items: center;">
+                        <span>S/</span>
+                        <input type="number" value="${i.precio.toFixed(2)}" step="0.10"
+                               style="width: 50px; border: none; background: transparent; font-weight: 800; text-align: right; color: #000; outline: none; padding: 0;"
                                onchange="modificarPrecioCarrito(${index}, this.value)">
                     </div>
-                    <button class="btn-quitar-item" onclick="quitarUno('${i.id}')" style="background:none; border:none; cursor:pointer;">➖</button>
+                    <button class="no-print" onclick="quitarUno('${i.id}')" style="background:none; border:none; cursor:pointer; color: #ff4757; font-weight: bold;">➖</button>
                 </div>
             </div>`;
     });
@@ -352,7 +352,6 @@ function modificarPrecioCarrito(index, nuevoPrecio) {
     }
     carrito[index].precio = precioNum;
     renderBoleta();
-    mostrarNotificacion("💰 Precio ajustado");
 }
 
 function limpiarCarrito() {
@@ -360,10 +359,9 @@ function limpiarCarrito() {
     document.getElementById('pago-cliente').value = "";
     document.getElementById('vuelto-cliente').innerText = "S/ 0.00";
     renderBoleta();
-    mostrarNotificacion("Carrito vaciado");
 }
 
-// --- GENERACIÓN DE PDF ---
+// --- PDF Y VENTAS ---
 async function bajarPDFBoleta(nombreArchivo) {
     const element = document.querySelector('.boleta-card');
     const opt = {
@@ -381,7 +379,6 @@ async function finalizarVenta() {
         const totalVenta = carrito.reduce((sum, item) => sum + (item.precio * item.cant), 0);
         const pagoCon = parseFloat(document.getElementById('pago-cliente').value) || totalVenta;
         const vueltoVal = pagoCon - totalVenta;
-        
         const numTicket = "B001-" + Math.floor(Math.random() * 900000 + 100000);
         const ahora = new Date();
         const fechaTexto = ahora.toLocaleDateString() + ' ' + ahora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -398,7 +395,6 @@ async function finalizarVenta() {
         };
         
         db.ref('ventas').push(ventaData);
-
         carrito.forEach(item => {
             db.ref('productos/' + item.id).update({ stock: item.stock - item.cant });
         });
@@ -414,12 +410,8 @@ async function finalizarVenta() {
         link.click();
 
         window.print(); 
-        
-        carrito = []; 
-        document.getElementById('pago-cliente').value = "";
-        document.getElementById('vuelto-cliente').innerText = "S/ 0.00";
+        limpiarCarrito();
         document.getElementById('cliente-dni').value = "";
-        renderBoleta(); 
         mostrarNotificacion("✅ Venta y PDF generados");
     } else {
         mostrarNotificacion("El carrito está vacío");
@@ -428,13 +420,10 @@ async function finalizarVenta() {
 
 function filtrarPOS(val) {
     const q = val.toLowerCase();
-    
-    // Si no hay texto, mostramos todo y salimos
     if (q === "") {
         document.querySelectorAll('.card-producto').forEach(c => c.style.display = "block");
         return;
     }
-
     const exacto = productos.find(p => p.codigo === val);
     if(exacto) { 
         if(parseInt(exacto.stock) <= 0) {
@@ -444,11 +433,8 @@ function filtrarPOS(val) {
         }
         agregarCarrito(exacto.id); 
         document.getElementById('pos-search').value = ""; 
-        // Al agregar uno exacto, reseteamos la vista para mostrar todos de nuevo
-        document.querySelectorAll('.card-producto').forEach(c => c.style.display = "block");
         return;
     }
-    
     document.querySelectorAll('.card-producto').forEach(c => {
         c.style.display = c.innerText.toLowerCase().includes(q) ? "block" : "none";
     });
@@ -473,9 +459,12 @@ function renderHistorialFiltrado() {
     const fHasta = document.getElementById('filtro-hasta').value;
 
     if(!lista) return;
-    lista.innerHTML = "";
+    
+    // LIMPIEZA TOTAL DE LA LISTA
+    lista.innerHTML = ""; 
     let acumulado = 0;
 
+    // 1. FILTRADO
     let ventasFiltradas = todasLasVentas.filter(v => {
         if (!fDesde && !fHasta) return true;
         const partes = v.fecha.split(' ')[0].split('/'); 
@@ -485,34 +474,46 @@ function renderHistorialFiltrado() {
         return (!desde || fechaVenta >= desde) && (!hasta || fechaVenta <= hasta);
     });
 
-    ventasFiltradas.sort((a, b) => b.ticket.localeCompare(a.ticket));
+    // 2. ORDENADO BLINDADO (De más reciente a más antiguo)
+    ventasFiltradas.sort((a, b) => {
+        const parsear = (texto) => {
+            // Maneja DD/MM/YYYY HH:mm
+            const [f, h] = texto.split(' ');
+            const [d, m, y] = f.split('/');
+            return new Date(y, m - 1, d, h.split(':')[0], h.split(':')[1]).getTime();
+        };
+        return parsear(b.fecha) - parsear(a.fecha);
+    });
 
+    // 3. DIBUJAR
     let fechaActual = "";
+    let htmlFinal = ""; // Acumulamos en una variable para meterlo todo de un golpe
+
     ventasFiltradas.forEach(v => {
         const fechaDia = v.fecha.split(' ')[0];
         if (fechaDia !== fechaActual) {
             fechaActual = fechaDia;
-            lista.innerHTML += `<div class="separador-fecha" style="background: #e2e2e2; padding: 5px; margin: 10px 0; font-weight: bold; border-radius: 5px; text-align: center;">📅 VENTAS DEL ${fechaActual}</div>`;
+            htmlFinal += `<div class="separador-fecha" style="background: #e2e2e2; padding: 5px; margin: 10px 0; font-weight: bold; border-radius: 5px; text-align: center;">📅 VENTAS DEL ${fechaActual}</div>`;
         }
         acumulado += v.total;
-        lista.innerHTML += `
-            <div class="linea-historial" style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 10px 0;">
-                <div>
+        htmlFinal += `
+            <div class="linea-historial" style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 10px 0; align-items: center;">
+                <div style="flex: 1;">
                     <strong style="color: #5352ed;">${v.ticket}</strong> <small>(${v.fecha.split(' ')[1]})</small><br>
-                    <small>${v.productos.join(', ')}</small><br>
-                    <small style="color: #666;">Pago: S/ ${v.pagoCon?.toFixed(2) || v.total.toFixed(2)} | Vuelto: S/ ${v.vuelto?.toFixed(2) || '0.00'}</small>
+                    <small>${v.productos.join(', ')}</small>
                 </div>
                 <div style="text-align: right;">
                     <span style="font-weight: bold; color: #2ed573;">S/ ${v.total.toFixed(2)}</span><br>
-                    <button onclick="reimprimirTicket('${v.id}')" style="border:none; background:none; cursor:pointer; font-size:12px; color:#5352ed;">📄 PDF/REIMP</button>
+                    <button onclick="reimprimirTicket('${v.id}')" style="border:none; background:none; cursor:pointer; color:#5352ed;">📄 PDF</button>
+                    <button onclick="prepararEliminarVenta('${v.id}', event)" style="border:none; background:none; cursor:pointer; color:#ff4757;">🗑️</button>
                 </div>
             </div>`;
     });
-    
+
+    lista.innerHTML = htmlFinal;
     if(displayTotal) displayTotal.innerText = `Total Seleccionado: S/ ${acumulado.toFixed(2)}`;
 }
 
-// --- DESCARGA GLOBAL ZIP ---
 async function descargarTodoPDF() {
     const fDesde = document.getElementById('filtro-desde').value;
     const fHasta = document.getElementById('filtro-hasta').value;
@@ -526,32 +527,36 @@ async function descargarTodoPDF() {
         return (!desde || fechaVenta >= desde) && (!hasta || fechaVenta <= hasta);
     });
 
-    if (filtradas.length === 0) return mostrarNotificacion("No hay boletas para descargar");
+    if (filtradas.length === 0) return mostrarNotificacion("No hay boletas");
 
-    mostrarNotificacion("⚙️ Generando ZIP, espera...");
+    mostrarNotificacion("⚙️ Generando ZIP...");
     const zip = new JSZip();
 
-    for (let v of filtradas) {
+    for (const v of filtradas) {
         document.getElementById('num-ticket').innerText = v.ticket;
         document.getElementById('fecha-boleta').innerText = v.fecha;
         document.getElementById('pos-total').innerText = "S/ " + v.total.toFixed(2);
-        document.getElementById('pago-cliente').value = v.pagoCon;
         document.getElementById('vuelto-cliente').innerText = "S/ " + (v.vuelto ? v.vuelto.toFixed(2) : "0.00");
         document.getElementById('cliente-dni').value = v.cliente;
+        document.getElementById('pago-cliente').value = v.pagoCon || v.total;
 
         const box = document.getElementById('carrito-items');
         box.innerHTML = "";
+        
         if(v.detalleCarrito) {
             v.detalleCarrito.forEach(i => {
                 box.innerHTML += `
-                    <div class="item-boleta-linea" style="display: flex; justify-content: space-between; font-size: 0.85rem;">
-                        <span>${i.cant}x ${i.nombre}</span>
-                        <span>S/ ${i.precio.toFixed(2)}</span>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px; color: #000; font-family: monospace;">
+                        <div style="display: flex; gap: 4px;">
+                            <b style="font-weight: 800;">${i.cant}x</b>
+                            <span style="text-transform: uppercase;">${i.nombre}</span>
+                        </div>
+                        <b style="font-weight: 800;">S/ ${i.precio.toFixed(2)}</b>
                     </div>`;
             });
         } else {
             v.productos.forEach(p => {
-                box.innerHTML += `<div class="item-boleta-linea" style="font-size: 0.85rem;">${p}</div>`;
+                box.innerHTML += `<div style="font-size: 0.85rem; font-weight: 800; color: #000; margin-bottom: 4px;">${p}</div>`;
             });
         }
 
@@ -562,10 +567,9 @@ async function descargarTodoPDF() {
     const content = await zip.generateAsync({type:"blob"});
     const link = document.createElement('a');
     link.href = URL.createObjectURL(content);
-    link.download = `Boletas_VaneStore_${new Date().toISOString().slice(0,10)}.zip`;
+    link.download = `Boletas_VaneStore_${new Date().toISOString().slice(0, 10)}.zip`;
     link.click();
     mostrarNotificacion("✅ ZIP Descargado");
-    
     limpiarCarrito();
 }
 
@@ -585,18 +589,20 @@ function reimprimirTicket(id) {
         if(v.detalleCarrito) {
             v.detalleCarrito.forEach(i => {
                 box.innerHTML += `
-                    <div class="item-boleta-linea" style="display: flex; justify-content: space-between; font-size: 0.85rem;">
-                        <span>${i.cant}x ${i.nombre}</span>
-                        <span>S/ ${i.precio.toFixed(2)}</span>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px; color: #000; font-family: monospace;">
+                        <div style="display: flex; gap: 4px;">
+                            <b style="font-weight: 800;">${i.cant}x</b>
+                            <span style="text-transform: uppercase;">${i.nombre}</span>
+                        </div>
+                        <b style="font-weight: 800;">S/ ${i.precio.toFixed(2)}</b>
                     </div>`;
             });
         } else {
             v.productos.forEach(prodStr => {
-                box.innerHTML += `<div class="item-boleta-linea" style="font-size: 0.85rem;">${prodStr}</div>`;
+                box.innerHTML += `<div style="font-size: 0.85rem; color: #000; font-weight: 800;">${prodStr}</div>`;
             });
         }
-        
-        window.print();
+        setTimeout(() => { window.print(); }, 300);
     }
 }
 
@@ -616,55 +622,41 @@ function exportarExcel() {
 
     const datosExcel = filtradas.map(v => ({
         "Ticket": v.ticket,
-        "Fecha y Hora": v.fecha,
+        "Fecha": v.fecha,
         "Cliente": v.cliente || "General",
-        "Productos": v.productos.join(' | '),
-        "Total (S/)": v.total,
-        "Pagó con (S/)": v.pagoCon || v.total,
-        "Vuelto (S/)": v.vuelto || 0
+        "Total": v.total,
+        "Pago": v.pagoCon,
+        "Vuelto": v.vuelto
     }));
 
     const hoja = XLSX.utils.json_to_sheet(datosExcel);
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(libro, hoja, "Ventas");
-    XLSX.writeFile(libro, `Reporte_VaneStore_${new Date().toISOString().slice(0,10)}.xlsx`);
-    mostrarNotificacion("📊 Excel generado");
+    XLSX.writeFile(libro, `Reporte_VaneStore.xlsx`);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     const inputCant = document.getElementById('input-cantidad-manual');
     if(inputCant) {
-        inputCant.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                confirmarAgregarCarrito();
-            }
+        inputCant.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') confirmarAgregarCarrito();
         });
     }
 });
 
-// --- FUNCIÓN DEL BOTÓN "X" ---
 function resetearBuscador() {
     const buscador = document.getElementById('pos-search');
-    buscador.value = ""; // Limpia el texto
-    buscador.focus();    // Devuelve el cursor al buscador
-    
-    // Mostramos todos los productos de nuevo sin filtros
-    document.querySelectorAll('.card-producto').forEach(c => {
-        c.style.display = "block";
-    });
-    
+    buscador.value = ""; 
+    buscador.focus();    
+    document.querySelectorAll('.card-producto').forEach(c => { c.style.display = "block"; });
     mostrarNotificacion("🧹 Búsqueda limpiada");
 }
 
 function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
-    
-    // Opcional: Guardar la preferencia
-    const esOscuro = document.body.classList.contains('dark-mode');
-    localStorage.setItem('dark-mode', esOscuro);
+    localStorage.setItem('dark-mode', document.body.classList.contains('dark-mode'));
 }
 
-// Al cargar la página, revisar si ya estaba en modo oscuro
 window.onload = () => {
     if (localStorage.getItem('dark-mode') === 'true') {
         document.body.classList.add('dark-mode');
