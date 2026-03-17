@@ -528,3 +528,14 @@ body.dark-mode .total-final {
 body.dark-mode .divisor-ticket {
     color: #555 !important;
 }
+
+#video video {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+}
+
+/* Si Quagga crea un canvas encima, lo ocultamos */
+.drawingBuffer {
+    display: none;
+}
