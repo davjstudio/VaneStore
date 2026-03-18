@@ -765,11 +765,16 @@ async function finalizarVenta() {
     link.download = `${numTicket}.pdf`;
     link.click();
 
+    // Imprimir y limpiar SOLO después de que se cierre el diálogo de impresión
+    const afterPrint = () => {
+        limpiarCarrito();
+        document.getElementById('cliente-dni').value = '';
+        mostrarNotificacion('✅ Venta y PDF generados');
+        document.getElementById('pos-search').focus();
+        window.removeEventListener('afterprint', afterPrint);
+    };
+    window.addEventListener('afterprint', afterPrint);
     window.print();
-    limpiarCarrito();
-    document.getElementById('cliente-dni').value = '';
-    mostrarNotificacion('✅ Venta y PDF generados');
-    document.getElementById('pos-search').focus();
 }
 
 // --- FILTRADO POS / BUSCADOR ---
@@ -934,40 +939,73 @@ async function descargarTodoPDF() {
     limpiarCarrito();
 }
 
-function reimprimirTicket(id) {
+async function reimprimirTicket(id) {
     const v = todasLasVentas.find(x => x.id === id);
-    if (v) {
-        document.getElementById('num-ticket').innerText    = v.ticket;
-        document.getElementById('fecha-boleta').innerText  = v.fecha;
-        document.getElementById('pos-total').innerText     = 'S/ ' + v.total.toFixed(2);
-        document.getElementById('vuelto-cliente').innerText = 'S/ ' + (v.vuelto ? v.vuelto.toFixed(2) : '0.00');
-        document.getElementById('cliente-dni').value        = v.cliente;
-        document.getElementById('pago-cliente').value       = v.pagoCon || v.total;
+    if (!v) return;
 
-        const box = document.getElementById('carrito-items');
-        box.innerHTML = '';
+    // Guardamos el estado actual del carrito para restaurarlo después
+    const carritoBackup      = JSON.parse(JSON.stringify(carrito));
+    const ticketBackup       = document.getElementById('num-ticket').innerText;
+    const fechaBackup        = document.getElementById('fecha-boleta').innerText;
+    const totalBackup        = document.getElementById('pos-total').innerText;
+    const vueltoBackup       = document.getElementById('vuelto-cliente').innerText;
+    const clienteBackup      = document.getElementById('cliente-dni').value;
+    const pagoBackup         = document.getElementById('pago-cliente').value;
+    const carritoItemsBackup = document.getElementById('carrito-items').innerHTML;
 
-        if (v.detalleCarrito) {
-            v.detalleCarrito.forEach(i => {
-                box.innerHTML += `
-                    <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:4px; color:#000; font-family:monospace;">
-                        <div style="display:flex; gap:4px;">
-                            <b style="font-weight:800;">${i.cant}x</b>
-                            <span style="text-transform:uppercase;">${i.nombre}</span>
-                        </div>
-                        <b style="font-weight:800;">S/ ${i.precio.toFixed(2)}</b>
-                    </div>`;
-            });
-        } else {
-            v.productos.forEach(prodStr => {
-                box.innerHTML += `<div style="font-size:0.85rem; color:#000; font-weight:800;">${prodStr}</div>`;
-            });
-        }
-        setTimeout(() => { window.print(); }, 300);
+    // Rellenamos la boleta con los datos de la venta a reimprimir
+    document.getElementById('num-ticket').innerText    = v.ticket;
+    document.getElementById('fecha-boleta').innerText  = v.fecha;
+    document.getElementById('pos-total').innerText     = 'S/ ' + v.total.toFixed(2);
+    document.getElementById('vuelto-cliente').innerText = 'S/ ' + (v.vuelto ? v.vuelto.toFixed(2) : '0.00');
+    document.getElementById('cliente-dni').value        = v.cliente;
+    document.getElementById('pago-cliente').value       = v.pagoCon || v.total;
+
+    const box = document.getElementById('carrito-items');
+    box.innerHTML = '';
+    if (v.detalleCarrito) {
+        v.detalleCarrito.forEach(i => {
+            box.innerHTML += `
+                <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:4px; color:#000; font-family:monospace;">
+                    <div style="display:flex; gap:4px;">
+                        <b style="font-weight:800;">${i.cant}x</b>
+                        <span style="text-transform:uppercase;">${i.nombre}</span>
+                    </div>
+                    <b style="font-weight:800;">S/ ${i.precio.toFixed(2)}</b>
+                </div>`;
+        });
+    } else {
+        v.productos.forEach(p => {
+            box.innerHTML += `<div style="font-size:0.85rem; color:#000; font-weight:800;">${p}</div>`;
+        });
     }
+
+    // Descargar PDF
+    const pdfBlob = await bajarPDFBoleta(v.ticket);
+    const url  = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href     = url;
+    link.download = `${v.ticket}.pdf`;
+    link.click();
+
+    // Restaurar estado original después de imprimir
+    const restaurar = () => {
+        carrito = carritoBackup;
+        document.getElementById('num-ticket').innerText     = ticketBackup;
+        document.getElementById('fecha-boleta').innerText   = fechaBackup;
+        document.getElementById('pos-total').innerText      = totalBackup;
+        document.getElementById('vuelto-cliente').innerText = vueltoBackup;
+        document.getElementById('cliente-dni').value        = clienteBackup;
+        document.getElementById('pago-cliente').value       = pagoBackup;
+        document.getElementById('carrito-items').innerHTML  = carritoItemsBackup;
+        window.removeEventListener('afterprint', restaurar);
+    };
+    window.addEventListener('afterprint', restaurar);
+
+    setTimeout(() => { window.print(); }, 500);
 }
 
-function exportarExcel() {
+async function exportarExcel() {
     if (todasLasVentas.length === 0) return mostrarNotificacion('No hay datos');
     const fDesde = document.getElementById('filtro-desde').value;
     const fHasta = document.getElementById('filtro-hasta').value;
@@ -981,19 +1019,116 @@ function exportarExcel() {
         return (!desde || fechaVenta >= desde) && (!hasta || fechaVenta <= hasta);
     });
 
-    const datosExcel = filtradas.map(v => ({
-        'Ticket': v.ticket,
-        'Fecha':  v.fecha,
-        'Cliente': v.cliente || 'General',
-        'Total':   v.total,
-        'Pago':    v.pagoCon,
-        'Vuelto':  v.vuelto
-    }));
+    if (filtradas.length === 0) return mostrarNotificacion('No hay ventas en ese rango');
 
-    const hoja  = XLSX.utils.json_to_sheet(datosExcel);
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, 'Ventas');
-    XLSX.writeFile(libro, 'Reporte_VaneStore.xlsx');
+    // ── Consolidar productos ──
+    const consolidado = {};
+    filtradas.forEach(v => {
+        if (v.detalleCarrito) {
+            v.detalleCarrito.forEach(item => {
+                if (!consolidado[item.nombre]) consolidado[item.nombre] = { nombre: item.nombre, cantidad: 0, total: 0 };
+                consolidado[item.nombre].cantidad += item.cant;
+                consolidado[item.nombre].total    += item.precio * item.cant;
+            });
+        }
+    });
+
+    const lista        = Object.values(consolidado).sort((a, b) => b.total - a.total);
+    const totalGeneral = lista.reduce((s, p) => s + p.total, 0);
+    const totalCant    = lista.reduce((s, p) => s + p.cantidad, 0);
+    const periodoTexto = fDesde && fHasta ? `${fDesde} al ${fHasta}` : new Date().toLocaleDateString('es-PE');
+    const fechaArchivo = new Date().toISOString().slice(0, 10);
+
+    // ── Construir HTML del reporte (igual al PDF de referencia) ──
+    const filas = lista.map((p, i) => `
+        <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
+            <td style="padding:7px 10px; border:1px solid #dee2e6; text-align:center;">${i + 1}</td>
+            <td style="padding:7px 10px; border:1px solid #dee2e6;">${p.nombre}</td>
+            <td style="padding:7px 10px; border:1px solid #dee2e6; text-align:center;">${p.cantidad}</td>
+            <td style="padding:7px 10px; border:1px solid #dee2e6; text-align:right;">S/ ${p.total.toFixed(2)}</td>
+        </tr>`).join('');
+
+    const htmlReporte = `
+        <div style="font-family: Arial, sans-serif; padding: 30px; color: #000; max-width: 750px; margin: 0 auto;">
+
+            <!-- ENCABEZADO -->
+            <div style="border-bottom: 3px solid #2f3542; padding-bottom: 15px; margin-bottom: 20px;">
+                <h1 style="margin:0; font-size:1.6rem; color:#2f3542; letter-spacing:2px;">VANE STORE</h1>
+                <p style="margin:4px 0; font-size:0.85rem; color:#555;">RUC: 10612629230</p>
+                <p style="margin:4px 0; font-size:0.85rem; color:#555;">Calle 7 #170 Av. Buenos Aires</p>
+            </div>
+
+            <!-- TÍTULO REPORTE -->
+            <div style="background:#2f3542; color:white; padding:10px 15px; border-radius:6px; margin-bottom:20px;">
+                <h2 style="margin:0; font-size:1rem; letter-spacing:1px;">CONSOLIDADO DE ITEMS — TOTALES</h2>
+                <p style="margin:4px 0 0; font-size:0.8rem; opacity:0.8;">Período: ${periodoTexto} &nbsp;|&nbsp; Ventas: ${filtradas.length} &nbsp;|&nbsp; Generado: ${new Date().toLocaleString('es-PE')}</p>
+            </div>
+
+            <!-- TABLA -->
+            <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                <thead>
+                    <tr style="background:#2f3542; color:white;">
+                        <th style="padding:9px 10px; border:1px solid #2f3542; text-align:center; width:40px;">#</th>
+                        <th style="padding:9px 10px; border:1px solid #2f3542; text-align:left;">Producto</th>
+                        <th style="padding:9px 10px; border:1px solid #2f3542; text-align:center; width:110px;">Cantidad Total</th>
+                        <th style="padding:9px 10px; border:1px solid #2f3542; text-align:right; width:130px;">Total de Venta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filas}
+                </tbody>
+                <tfoot>
+                    <tr style="background:#2ed573; font-weight:bold;">
+                        <td colspan="2" style="padding:9px 10px; border:1px solid #28c26a; text-align:right;">TOTAL GENERAL</td>
+                        <td style="padding:9px 10px; border:1px solid #28c26a; text-align:center;">${totalCant}</td>
+                        <td style="padding:9px 10px; border:1px solid #28c26a; text-align:right;">S/ ${totalGeneral.toFixed(2)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <!-- RESUMEN -->
+            <div style="margin-top:20px; display:flex; gap:20px; flex-wrap:wrap;">
+                <div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:12px 20px; min-width:150px;">
+                    <div style="font-size:0.72rem; color:#666; text-transform:uppercase; letter-spacing:1px;">N° de Ventas</div>
+                    <div style="font-size:1.5rem; font-weight:bold; color:#2f3542;">${filtradas.length}</div>
+                </div>
+                <div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:12px 20px; min-width:150px;">
+                    <div style="font-size:0.72rem; color:#666; text-transform:uppercase; letter-spacing:1px;">Total Recaudado</div>
+                    <div style="font-size:1.5rem; font-weight:bold; color:#2ed573;">S/ ${totalGeneral.toFixed(2)}</div>
+                </div>
+                <div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:12px 20px; min-width:150px;">
+                    <div style="font-size:0.72rem; color:#666; text-transform:uppercase; letter-spacing:1px;">Ticket Promedio</div>
+                    <div style="font-size:1.5rem; font-weight:bold; color:#2f3542;">S/ ${(totalGeneral / filtradas.length).toFixed(2)}</div>
+                </div>
+                <div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:12px 20px; min-width:150px;">
+                    <div style="font-size:0.72rem; color:#666; text-transform:uppercase; letter-spacing:1px;">Productos Vendidos</div>
+                    <div style="font-size:1.5rem; font-weight:bold; color:#2f3542;">${lista.length}</div>
+                </div>
+            </div>
+
+            <!-- PIE -->
+            <div style="margin-top:25px; border-top:1px solid #dee2e6; padding-top:10px; font-size:0.75rem; color:#999; text-align:center;">
+                Reporte generado por VANE STORE POS · ${new Date().toLocaleString('es-PE')}
+            </div>
+        </div>`;
+
+    // ── Crear div temporal, convertir a PDF con html2pdf ──
+    mostrarNotificacion('⚙️ Generando reporte PDF...');
+    const contenedor = document.createElement('div');
+    contenedor.innerHTML = htmlReporte;
+    document.body.appendChild(contenedor);
+
+    const opt = {
+        margin:     [10, 10, 10, 10],
+        filename:   `Reporte_VaneStore_${fechaArchivo}.pdf`,
+        image:      { type: 'jpeg', quality: 0.98 },
+        html2canvas:{ scale: 2, useCORS: true },
+        jsPDF:      { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    await html2pdf().set(opt).from(contenedor).save();
+    document.body.removeChild(contenedor);
+    mostrarNotificacion('✅ Reporte PDF descargado — ' + lista.length + ' productos');
 }
 
 // --- DARK MODE ---
