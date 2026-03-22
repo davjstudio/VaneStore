@@ -209,7 +209,7 @@ function cerrarEscaner() {
         const el = modoEscaner === 'registro'
             ? document.getElementById('prod-codigo')
             : document.getElementById('pos-search');
-        if (el) el.focus();
+        if (el) el.focus({ preventScroll: true });
     }, 150);
 }
 
@@ -337,7 +337,7 @@ function mostrarSeccion(id) {
         renderTienda();
         setTimeout(() => {
             const search = document.getElementById('pos-search');
-            if (search) search.focus();
+            if (search) search.focus({ preventScroll: true });
             // Arrancar escáner automáticamente en modo silencioso
             _arrancarEscanerSilencioso();
         }, 400);
@@ -456,7 +456,7 @@ function renderTienda(filtro) {
     const lista = filtro
         ? productos.filter(p =>
             p.nombre.toLowerCase().includes(filtro.toLowerCase()) ||
-            p.codigo.includes(filtro))
+            (p.codigo && p.codigo.toLowerCase().includes(filtro.toLowerCase())))
         : productos;
 
     // DocumentFragment: un solo reflow en vez de uno por producto
@@ -634,7 +634,7 @@ function setCantPreset(valor) {
 function cerrarModalCantidad() {
     document.getElementById('modal-cantidad').style.display = 'none';
     productoSeleccionadoID = null;
-    document.getElementById('pos-search').focus();
+    document.getElementById('pos-search').focus({ preventScroll: true });
 }
 
 function confirmarAgregarCarrito() {
@@ -678,20 +678,24 @@ function renderBoleta() {
         const subtotal = i.precio * i.cant;
         total += subtotal;
         box.innerHTML += `
-            <div class="item-boleta-linea" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:0.9rem; color:#000;">
-                <div style="display:flex; gap:5px; flex:1;">
-                    <span style="font-weight:800; min-width:25px;">${i.cant}x</span>
-                    <span style="text-transform:uppercase;">${i.nombre}</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:5px;">
-                    <div style="font-weight:800; display:flex; align-items:center;">
-                        <span>S/</span>
-                        <input type="number" value="${i.precio.toFixed(2)}" step="0.10"
-                               style="width:50px; border:none; background:transparent; font-weight:800; text-align:right; color:#000; outline:none; padding:0;"
-                               onchange="modificarPrecioCarrito(${index}, this.value)">
+            <div class="item-boleta-linea" style="margin-bottom:6px; font-size:11px; color:#000; font-family:'Courier New',monospace;">
+                <!-- Línea 1: cantidad x nombre (pantalla) / cantidad x nombre (ticket) -->
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; gap:4px; flex:1; overflow:hidden;">
+                        <span style="font-weight:800; white-space:nowrap;">${i.cant}x</span>
+                        <span style="text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${i.nombre}</span>
                     </div>
-                    <button class="no-print" onclick="quitarUno('${i.id}')" style="background:none; border:none; cursor:pointer; color:#ff4757; font-weight:bold;">➖</button>
+                    <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                        <span style="font-weight:800;">S/</span>
+                        <input type="number" value="${i.precio.toFixed(2)}" step="0.10"
+                               style="width:45px; border:none; background:transparent; font-weight:800; text-align:right; color:#000; outline:none; padding:0; font-family:'Courier New',monospace; font-size:11px;"
+                               onchange="modificarPrecioCarrito(${index}, this.value)">
+                        <span class="precio-print" style="display:none; font-weight:800;">${i.precio.toFixed(2)}</span>
+                        <button class="no-print" onclick="quitarUno('${i.id}')" style="background:none; border:none; cursor:pointer; color:#ff4757; font-weight:bold; font-size:12px; padding:0 2px;">➖</button>
+                    </div>
                 </div>
+                <!-- Línea 2: precio unitario × cantidad = subtotal (solo si cant > 1) -->
+                ${i.cant > 1 ? `<div style="color:#666; font-size:10px; padding-left:18px;">S/ ${i.precio.toFixed(2)} x ${i.cant} = S/ ${subtotal.toFixed(2)}</div>` : ''}
             </div>`;
     });
     document.getElementById('pos-total').innerText = 'S/ ' + total.toFixed(2);
@@ -770,7 +774,7 @@ async function finalizarVenta() {
         limpiarCarrito();
         document.getElementById('cliente-dni').value = '';
         mostrarNotificacion('✅ Venta y PDF generados');
-        document.getElementById('pos-search').focus();
+        document.getElementById('pos-search').focus({ preventScroll: true });
         window.removeEventListener('afterprint', afterPrint);
     };
     window.addEventListener('afterprint', afterPrint);
@@ -779,28 +783,51 @@ async function finalizarVenta() {
 
 // --- FILTRADO POS / BUSCADOR ---
 function filtrarPOS(val) {
-    const q       = val.trim().toLowerCase();
+    const q        = val.trim();
+    const qLower   = q.toLowerCase();
     const buscador = document.getElementById('pos-search');
 
+    // Campo vacío → mostrar todo
     if (q === '') {
-        document.querySelectorAll('.card-producto').forEach(c => c.style.display = 'block');
+        renderTienda();
         return;
     }
 
-    const exacto = productos.find(p => p.codigo === val.trim());
-
+    // Coincidencia EXACTA de código → agregar directo (escáner físico o USB)
+    const exacto = productos.find(p => p.codigo === q);
     if (exacto) {
         if (parseInt(exacto.stock) <= 0) {
             mostrarNotificacion('❌ AGOTADO: ' + exacto.nombre);
             buscador.value = '';
             return;
         }
-        agregarDirecto(exacto.id);  // escáner → directo sin modal
+        agregarDirecto(exacto.id);
         buscador.value = '';
         return;
     }
 
-    renderTienda(q);
+    // Búsqueda parcial por nombre O código → mostrar tarjetas filtradas
+    const resultados = productos.filter(p =>
+        p.nombre.toLowerCase().includes(qLower) ||
+        (p.codigo && p.codigo.toLowerCase().includes(qLower))
+    );
+
+    // Si hay un solo resultado y es búsqueda por Enter, agregarlo directo
+    if (resultados.length === 1 && buscador._enterPressed) {
+        buscador._enterPressed = false;
+        if (parseInt(resultados[0].stock) <= 0) {
+            mostrarNotificacion('❌ AGOTADO: ' + resultados[0].nombre);
+            buscador.value = '';
+            renderTienda();
+            return;
+        }
+        agregarDirecto(resultados[0].id);
+        buscador.value = '';
+        renderTienda();
+        return;
+    }
+
+    renderTienda(qLower);
 }
 
 function resetearBuscador() {
@@ -1166,7 +1193,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const esInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
             const esModal = e.target.closest('.modal-vane') || e.target.closest('#modal-cantidad') || e.target.closest('#scanner-overlay');
             if (!esInput && !esModal) {
-                document.getElementById('pos-search').focus();
+                // preventScroll evita que el navegador haga scroll hacia arriba
+                document.getElementById('pos-search').focus({ preventScroll: true });
             }
         }
     });
@@ -1178,6 +1206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         posSearch.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
+                posSearch._enterPressed = true;
                 filtrarPOS(posSearch.value);
             }
         });
@@ -1194,5 +1223,5 @@ window.onload = () => {
         document.body.classList.add('dark-mode');
     }
     const search = document.getElementById('pos-search');
-    if (search) search.focus();
+    if (search) search.focus({ preventScroll: true });
 };

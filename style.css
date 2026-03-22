@@ -10,9 +10,9 @@
 }
 
 body.dark-mode {
-    --light: #121212;      /* Fondo general oscuro */
-    --white: #1e1e1e;      /* Fondo de tarjetas y header */
-    --dark: #e1e1e1;       /* Texto principal */
+    --light: #121212;
+    --white: #1e1e1e;
+    --dark: #e1e1e1;
     background-color: #121212;
     color: #e1e1e1;
 }
@@ -23,7 +23,6 @@ body {
     margin: 0; 
 }
 
-/* --- HEADER OPTIMIZADO --- */
 .main-header {
     background: var(--white); 
     padding: 10px 30px; 
@@ -36,49 +35,23 @@ body {
     z-index: 1000;
 }
 
-.logo { 
-    font-size: 1.6rem; 
-    font-weight: 800; 
-    flex-shrink: 0;
-}
-
+.logo { font-size: 1.6rem; font-weight: 800; flex-shrink: 0; }
 .logo span { color: var(--primary); }
 
-.menu-superior {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+.menu-superior { display: flex; align-items: center; gap: 10px; }
 
 .btn-nav { 
-    padding: 10px 20px; 
-    border: none; 
-    border-radius: 30px; 
-    font-weight: 600; 
-    cursor: pointer; 
-    transition: 0.3s; 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding: 10px 20px; border: none; border-radius: 30px; font-weight: 600; 
+    cursor: pointer; transition: 0.3s; display: flex; align-items: center;
+    justify-content: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     font-family: 'Poppins', sans-serif;
 }
-
 .btn-accent { background: var(--primary); color: white; }
+.btn-nav:hover { opacity: 0.8; transform: scale(1.05); }
 
-.btn-nav:hover { 
-    opacity: 0.8; 
-    transform: scale(1.05); 
-}
-
-/* --- POS LAYOUT --- */
 .pos-container { 
-    display: flex; 
-    min-height: calc(100vh - 80px); 
-    padding: 20px; 
-    gap: 20px; 
-    align-items: flex-start; 
+    display: flex; min-height: calc(100vh - 80px); 
+    padding: 20px; gap: 20px; align-items: flex-start; 
 }
 .catalog-section { flex: 2; }
 
@@ -87,19 +60,16 @@ body {
     margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); outline: none;
 }
 
-/* --- GRID & CARDS --- */
 .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 15px; }
 .card-producto {
     background: white; border-radius: 15px; padding: 12px; text-align: center;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s;
-    position: relative;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; position: relative;
 }
 .card-producto:hover { transform: translateY(-5px); }
 .card-producto img { width: 100%; height: 130px; object-fit: cover; border-radius: 10px; }
 .card-producto h4 { margin: 10px 0 5px; font-size: 1rem; }
 .card-producto p { color: var(--primary); font-weight: 800; margin: 0; }
 
-/* --- BOTONES DE ADMINISTRACIÓN --- */
 .admin-btns {
     position: absolute; top: 8px; right: 8px;
     display: flex; gap: 8px; z-index: 100; opacity: 0; transition: opacity 0.3s ease;
@@ -114,28 +84,17 @@ body {
 .btn-edit-prod { background: var(--warning); }
 .btn-delete-prod { background: var(--danger); }
 
-/* --- SECCIÓN BOLETA (ACTUALIZADO A LÍNEA ÚNICA) --- */
 .checkout-section { 
-    flex: 0.8; 
-    position: sticky; 
-    top: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex: 0.8; position: sticky; top: 20px;
+    display: flex; flex-direction: column; align-items: center;
 }
 
 .boleta-card {
-    background: #fff;
-    padding: 20px;
-    border: 1px solid #ddd;
+    background: #fff; padding: 20px; border: 1px solid #ddd;
     box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-    font-family: 'Courier New', monospace;
-    color: #000;
-    width: 100%;
-    max-width: 300px; 
-    margin: 0 auto;
-    box-sizing: border-box;
-    position: relative;
+    font-family: 'Courier New', monospace; color: #000;
+    width: 100%; max-width: 300px; margin: 0 auto;
+    box-sizing: border-box; position: relative;
 }
 
 .boleta-header { text-align: center; }
@@ -155,94 +114,26 @@ body {
     font-size: 11px; width: 100%; outline: none; font-weight: bold;
 }
 
+.fila-info { display: flex; gap: 4px; align-items: baseline; }
+
 .divisor-ticket { text-align: center; font-size: 11px; margin: 8px 0; font-weight: bold; }
 
-/* --- NUEVA ESTRUCTURA DE LÍNEA --- */
 .item-boleta-linea {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 11px;
-    margin-bottom: 8px;
-    gap: 4px;
+    font-size: 11px; margin-bottom: 6px;
+    font-family: 'Courier New', monospace; color: #000;
 }
 
-.item-info {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    flex: 1;
-    overflow: hidden;
-}
-
-.item-nombre {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.item-controles {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-}
-
-.precio-editable-container {
-    display: flex;
-    align-items: center;
-    background: #f1f2f6;
-    border-radius: 4px;
-    padding: 2px 5px;
-    border: 1px solid #eee;
-}
-
-.input-precio-boleta {
-    width: 45px;
-    border: none;
-    background: transparent;
-    font-weight: bold;
-    color: #2ed573;
-    text-align: right;
-    font-family: 'Poppins', sans-serif;
-    outline: none;
-    font-size: 11px;
-}
-
-/* BOTÓN DE QUITAR (Solo visible en pantalla) */
-.btn-quitar-item {
-    background: #f1f2f6;
-    border: none;
-    border-radius: 4px;
-    padding: 2px 5px;
-    cursor: pointer;
-    font-size: 10px;
-    transition: 0.2s;
-}
-.btn-quitar-item:hover { background: #ff4757; color: white; }
-
-.item-cant { font-weight: bold; }
-
-.seccion-totales {
-    border-top: 1px dashed #000;
-    margin-top: 10px;
-    padding-top: 10px;
-}
+.seccion-totales { border-top: 1px dashed #000; margin-top: 10px; padding-top: 10px; }
 
 .total-final {
-    display: flex;
-    justify-content: space-between;
-    font-size: 14px;
-    font-weight: bold;
-    margin-bottom: 10px;
+    display: flex; justify-content: space-between;
+    font-size: 14px; font-weight: bold; margin-bottom: 10px;
 }
 
 .fila-pago, .fila-vuelto {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    margin-bottom: 4px;
+    display: flex; justify-content: space-between;
+    font-size: 12px; margin-bottom: 4px;
 }
-
 .fila-vuelto { font-weight: bold; color: #000; }
 
 #pago-cliente {
@@ -256,23 +147,18 @@ body {
     border-top: 1px dashed #000; padding-top: 10px;
 }
 
-/* --- BOTONES DE ACCIÓN --- */
-.contenedor-acciones-boleta { width: 100%; max-width: 300px; }
-
 .btn-confirmar { 
     background: #2ed573; color: white; border: none; padding: 15px; 
     border-radius: 12px; font-weight: 700; width: 100%; cursor: pointer; 
     margin-top: 20px; font-size: 1.1rem; font-family: 'Poppins', sans-serif;
     box-shadow: 0 4px 10px rgba(46, 213, 115, 0.3);
 }
-
 .btn-vaciar { 
     background: #f1f2f6; color: #57606f; border: none; padding: 10px; 
     border-radius: 10px; width: 100%; cursor: pointer; margin-top: 10px;
     font-size: 0.85rem; font-family: 'Poppins', sans-serif;
 }
 
-/* --- REGISTRO Y CÁMARA --- */
 .container-registro { display: flex; justify-content: center; padding: 30px; }
 .card-registro { background: white; padding: 30px; border-radius: 25px; width: 100%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
 #video { width: 100%; border-radius: 15px; background: #000; height: 250px; object-fit: cover; }
@@ -282,10 +168,8 @@ body {
 .btn-snap { width: 100%; background: #34495e; color: white; padding: 12px; border: none; border-radius: 10px; margin: 10px 0; cursor: pointer; font-weight: 600; }
 .btn-guardar-prod { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; margin-top: 10px; cursor: pointer; }
 
-/* --- HISTORIAL --- */
 .linea-historial:hover { background-color: #f9f9f9; transition: 0.2s; }
 
-/* --- NOTIFICACIONES TOAST --- */
 .toast-vane {
     position: fixed; top: 20px; right: 20px;
     background: #1a1a1a; color: var(--gold);
@@ -295,14 +179,12 @@ body {
     z-index: 10000; display: flex; align-items: center; gap: 10px; font-weight: 600;
     animation: slideIn 0.5s ease forwards, fadeOut 0.5s ease 2.5s forwards;
 }
-
 @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes fadeOut { to { transform: translateY(-20px); opacity: 0; } }
 
-/* --- MODAL GENERAL --- */
 .modal-vane {
     display: none; position: fixed; top: 0; left: 0;
-    width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6);
+    width: 100%; height: 100%; background: rgba(0,0,0,0.6);
     backdrop-filter: blur(5px); z-index: 9999;
     align-items: center; justify-content: center;
 }
@@ -311,11 +193,14 @@ body {
     text-align: center; width: 90%; max-width: 400px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: aparecer 0.3s ease;
 }
+@keyframes aparecer {
+    from { transform: scale(0.8); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
 .modal-botones { display: flex; gap: 10px; margin-top: 20px; }
 .btn-modal-si { flex: 1; background: #ff4757; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; }
 .btn-modal-no { flex: 1; background: #f1f2f6; color: #2f3542; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; }
 
-/* --- AJUSTES PARA CELULAR --- */
 @media (max-width: 768px) {
     .main-header { flex-direction: column; padding: 15px; gap: 15px; }
     .menu-superior { width: 100%; justify-content: center; flex-wrap: wrap; }
@@ -326,83 +211,146 @@ body {
     .grid-productos { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
 }
 
-/* --- FORMATO DE IMPRESIÓN FINAL (Y PDF) --- */
+/* ================================================
+   IMPRESIÓN TICKETERA TÉRMICA
+   ================================================ */
 @media print {
-    @page { margin: 0; size: auto; }
-    html, body { height: auto; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #fff; }
-    
+    @page { margin: 0; size: 80mm auto; }
+
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    /* Ocultar todo */
     body * { visibility: hidden; }
-    .boleta-card, .boleta-card * { visibility: visible; }
-    
-    .btn-quitar-item, 
-    .btn-confirmar, 
-    .btn-vaciar, 
-    .main-header, 
-    .catalog-section, 
-    .admin-btns, 
-    .no-print { 
+
+    /* Mostrar solo la boleta */
+    .boleta-card,
+    .boleta-card * { visibility: visible; }
+
+    /* Ocultar botones dentro de boleta */
+    .no-print,
+    .btn-confirmar,
+    .btn-vaciar,
+    .admin-btns,
+    .btn-quitar-item { 
         display: none !important; 
-        visibility: hidden !important;
+        visibility: hidden !important; 
     }
 
+    /* Ocultar input de precio, mostrar span de precio */
+    .item-boleta-linea input { 
+        display: none !important; 
+        visibility: hidden !important; 
+    }
+    .precio-print { 
+        display: inline !important; 
+        visibility: visible !important; 
+        font-weight: 800;
+    }
+
+    /* Posición y tamaño de la boleta */
     .boleta-card {
-        position: absolute; left: 0; top: 0; width: 100%; 
-        max-width: 75mm; padding: 5mm; box-shadow: none; border: none;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 76mm !important;
+        max-width: 76mm !important;
+        padding: 4mm 3mm !important;
+        margin: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        font-family: 'Courier New', monospace !important;
+        font-size: 11px !important;
+        color: #000 !important;
+        background: #fff !important;
     }
+
+    .boleta-header h2  { font-size: 14px !important; }
+    .boleta-header p   { font-size: 10px !important; }
+    #fecha-boleta      { font-size: 10px !important; }
+    #num-ticket        { font-size: 11px !important; padding: 4px 0 !important; margin: 6px 0 !important; }
+    .info-ticket       { font-size: 10px !important; margin: 6px 0 !important; }
+    .divisor-ticket    { font-size: 10px !important; margin: 4px 0 !important; }
+    .item-boleta-linea { font-size: 10px !important; margin-bottom: 4px !important; }
+    .total-final       { font-size: 12px !important; }
+    .fila-pago,
+    .fila-vuelto       { font-size: 10px !important; }
+    #pago-cliente      { font-size: 10px !important; border: none !important; }
+    .footer-ticket     { font-size: 9px !important; margin-top: 8px !important; }
 }
 
-/* --- ESTILOS PANTALLA DE BLOQUEO --- */
+/* --- BUSCADOR --- */
+.search-wrapper { width: 100%; margin-bottom: 20px; }
+.input-container-rel { position: relative; width: 100%; display: flex; align-items: center; }
+
+#pos-search {
+    width: 100% !important; padding: 15px 80px 15px 20px !important; 
+    border-radius: 30px !important; border: none !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important; outline: none !important;
+    font-family: 'Poppins', sans-serif; box-sizing: border-box !important; margin-bottom: 0 !important;
+}
+
+#btn-reset-search {
+    position: absolute !important; right: 15px !important; top: 50% !important;
+    transform: translateY(-50%) !important; background: #e0e0e0 !important;
+    border: none !important; border-radius: 50% !important;
+    width: 26px !important; height: 26px !important; cursor: pointer !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    color: #666 !important; font-size: 14px !important; z-index: 10 !important;
+    padding: 0 !important; line-height: 1 !important; transition: background 0.2s;
+}
+#btn-reset-search:hover { background: #d0d0d0 !important; }
+
+body.dark-mode #pos-search {
+    background-color: #2c2c2c !important; color: white !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+}
+body.dark-mode .card-producto, body.dark-mode .boleta-card, 
+body.dark-mode .main-header, body.dark-mode .card-registro {
+    background-color: #1e1e1e !important; border-color: #333 !important; color: #e1e1e1 !important;
+}
+body.dark-mode .boleta-card { border: 1px dashed #444 !important; }
+body.dark-mode .item-boleta-linea, body.dark-mode .info-ticket,
+body.dark-mode .total-final { color: #e1e1e1 !important; }
+body.dark-mode .divisor-ticket { color: #555 !important; }
+
+#video video { width: 100%; height: auto; border-radius: 12px; }
+.drawingBuffer { display: none; }
+
+/* --- PANTALLA DE BLOQUEO --- */
 #bloqueo-pantalla {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: linear-gradient(135deg, #2f3542 0%, #1e2124 100%);
-    z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-family: 'Poppins', sans-serif;
+    z-index: 10000; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; color: white; font-family: 'Poppins', sans-serif;
 }
-
 .login-card {
-    background: white;
-    padding: 40px;
-    border-radius: 30px;
-    text-align: center;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-    width: 90%;
-    max-width: 350px;
-    color: #2f3542;
+    background: white; padding: 40px; border-radius: 30px; text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3); width: 90%; max-width: 350px; color: #2f3542;
 }
-
 .login-card img { width: 120px; margin-bottom: 20px; }
 .login-card h2 { margin: 0 0 10px 0; font-size: 1.5rem; font-weight: 800; }
 .login-card h2 span { color: #00b4cc; }
 .login-card p { font-size: 0.9rem; color: #666; margin-bottom: 25px; }
-
 .pin-input-container { display: flex; flex-direction: column; gap: 15px; }
-
 #pin-input {
     padding: 15px; font-size: 24px; text-align: center; letter-spacing: 10px;
-    border: 2px solid #f1f2f6; border-radius: 15px; outline: none; transition: 0.3s;
-    background: #f8f9fa;
+    border: 2px solid #f1f2f6; border-radius: 15px; outline: none; transition: 0.3s; background: #f8f9fa;
 }
 #pin-input:focus { border-color: #00b4cc; }
-
 .btn-entrar {
     background: #00b4cc; color: white; border: none; padding: 15px;
     border-radius: 15px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.3s;
 }
 .btn-entrar:hover { background: #0097ad; transform: translateY(-2px); }
-
 #error-pin { color: #ff4757; font-size: 0.85rem; margin-top: 10px; font-weight: 600; display: none; }
 
 .btn-cerrar-sesion {
     background-color: #ff4757; color: white; border: none; padding: 8px 15px;
-    border-radius: 8px; font-weight: bold; cursor: pointer;
-    font-family: 'Poppins', sans-serif; transition: 0.3s;
+    border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Poppins', sans-serif; transition: 0.3s;
 }
 .btn-cerrar-sesion:hover { background-color: #ff6b81; transform: scale(1.05); }
 
@@ -410,11 +358,8 @@ body {
     color: #ffffff !important; text-decoration: none !important;
     font-weight: bold !important; border-bottom: none !important; outline: none !important;
 }
-.footer-studio a:hover, .link-davj:hover {
-    color: #00b4cc !important; text-decoration: none !important; opacity: 0.8;
-}
+.footer-studio a:hover, .link-davj:hover { color: #00b4cc !important; opacity: 0.8; }
 
-/* --- ESTILOS DEL MODAL DE CANTIDAD (NUEVO) --- */
 .input-cantidad-gigante {
     width: 100%; padding: 15px; font-size: 2rem; text-align: center;
     border: 2px solid #f1f2f6; border-radius: 15px; margin-bottom: 15px;
@@ -422,9 +367,7 @@ body {
 }
 .input-cantidad-gigante:focus { border-color: #00b4cc; }
 
-.cantidad-selector {
-    display: flex; justify-content: space-between; gap: 10px; margin-bottom: 20px;
-}
+.cantidad-selector { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
 .btn-cant-pre {
     flex: 1; background: #f1f2f6; border: 2px solid transparent; padding: 10px 5px;
     border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s;
@@ -432,110 +375,5 @@ body {
 }
 .btn-cant-pre:hover { border-color: #00b4cc; color: #00b4cc; background: white; }
 
-/* Quita las flechas del input number para que se vea más limpio */
 .input-precio-boleta::-webkit-inner-spin-button,
-.input-precio-boleta::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-/* Contenedor relativo para posicionar el botón de limpiar */
-.input-container-rel {
-    position: relative;
-    width: 100%;
-    display: flex;
-    align-items: center;
-}
-/* --- BUSCADOR UNIFICADO --- */
-
-.search-wrapper {
-    width: 100%;
-    margin-bottom: 20px;
-}
-
-/* Usaremos la clase que ya tienes en tu HTML */
-.input-container-rel {
-    position: relative;
-    width: 100%;
-    display: flex;
-    align-items: center;
-}
-
-#pos-search {
-    width: 100% !important;
-    padding: 15px 50px 15px 20px !important; 
-    border-radius: 30px !important;
-    border: none !important;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
-    outline: none !important;
-    font-family: 'Poppins', sans-serif;
-    box-sizing: border-box !important;
-    margin-bottom: 0 !important; /* Evita que el input empuje hacia abajo */
-}
-
-#btn-reset-search {
-    position: absolute !important;
-    right: 15px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    background: #e0e0e0 !important;
-    border: none !important;
-    border-radius: 50% !important;
-    width: 26px !important;
-    height: 26px !important;
-    cursor: pointer !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    color: #666 !important;
-    font-size: 14px !important;
-    z-index: 10 !important;
-    padding: 0 !important;
-    line-height: 1 !important;
-    transition: background 0.2s;
-}
-
-#btn-reset-search:hover {
-    background: #d0d0d0 !important;
-}
-
-/* Ajustes específicos para Modo Oscuro */
-body.dark-mode #pos-search {
-    background-color: #2c2c2c !important;
-    color: white !important;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
-}
-
-body.dark-mode .card-producto, 
-body.dark-mode .boleta-card, 
-body.dark-mode .main-header,
-body.dark-mode .card-registro {
-    background-color: #1e1e1e !important;
-    border-color: #333 !important;
-    color: #e1e1e1 !important;
-}
-
-body.dark-mode .boleta-card {
-    border: 1px dashed #444 !important;
-}
-
-body.dark-mode .item-boleta-linea, 
-body.dark-mode .info-ticket,
-body.dark-mode .total-final {
-    color: #e1e1e1 !important;
-}
-
-body.dark-mode .divisor-ticket {
-    color: #555 !important;
-}
-
-#video video {
-    width: 100%;
-    height: auto;
-    border-radius: 12px;
-}
-
-/* Si Quagga crea un canvas encima, lo ocultamos */
-.drawingBuffer {
-    display: none;
-}
+.input-precio-boleta::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
