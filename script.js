@@ -32,7 +32,6 @@ db.ref('productos').on('value', (snapshot) => {
             nuevos.push({ id: key, ...data[key] });
         });
     }
-    // Solo re-renderizar si algo cambió de verdad
     if (JSON.stringify(nuevos) !== JSON.stringify(productos)) {
         productos = nuevos;
         const secPos = document.getElementById('sec-pos');
@@ -78,7 +77,6 @@ async function _iniciarEscaner() {
 
     const videoEl = document.getElementById('scanner-video');
 
-    // Pedir cámara
     try {
         streamEscaner = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
@@ -91,10 +89,9 @@ async function _iniciarEscaner() {
         return;
     }
 
-    // Esperar que el video cargue
     await new Promise(res => {
         videoEl.onloadedmetadata = () => res();
-        setTimeout(res, 2000); // timeout fallback
+        setTimeout(res, 2000);
     });
 
     const motor = 'BarcodeDetector' in window ? '⚡ Motor: BarcodeDetector (nativo)' : '⚡ Motor: ZXing (fallback)';
@@ -102,7 +99,6 @@ async function _iniciarEscaner() {
     const engineEl = document.getElementById('scanner-engine');
     if (engineEl) engineEl.textContent = motor;
 
-    // Elegir motor de lectura
     if ('BarcodeDetector' in window) {
         _leerConBarcodeDetector(videoEl);
     } else {
@@ -110,7 +106,6 @@ async function _iniciarEscaner() {
     }
 }
 
-// ── MOTOR 1: BarcodeDetector (nativo Chrome, el más confiable) ──
 async function _leerConBarcodeDetector(videoEl) {
     const detector = new BarcodeDetector({
         formats: ['ean_13','ean_8','code_128','code_39','upc_a','upc_e','qr_code','itf','codabar']
@@ -126,18 +121,14 @@ async function _leerConBarcodeDetector(videoEl) {
                 _codigoDetectado(codigo);
                 return;
             }
-        } catch(e) { /* frame sin código, normal */ }
+        } catch(e) {}
         scanLoop = requestAnimationFrame(tick);
     }
     scanLoop = requestAnimationFrame(tick);
 }
 
-// ── MOTOR 2: ZXing fallback ──
 function _leerConZXing(videoEl) {
-    const capCanvas = document.createElement('canvas');
-    const capCtx    = capCanvas.getContext('2d');
-    let   codeReader;
-
+    let codeReader;
     try {
         codeReader = new ZXing.BrowserMultiFormatReader();
         codeReader.decodeFromConstraints(
@@ -152,7 +143,6 @@ function _leerConZXing(videoEl) {
                 }
             }
         );
-        // Guardar ref para poder parar
         window._zxingInstance = codeReader;
     } catch(e) {
         mostrarNotificacion('⚠️ Error al iniciar lector: ' + e.message);
@@ -160,7 +150,6 @@ function _leerConZXing(videoEl) {
     }
 }
 
-// ── Código detectado: acción según modo ──
 function _codigoDetectado(codigo) {
     if (!scannerAbierto) return;
     if (navigator.vibrate) navigator.vibrate([120]);
@@ -223,9 +212,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-
 // ============================================================
-//  CÁMARA PARA FOTOS DE PRODUCTOS (código original sin cambios)
+//  CÁMARA PARA FOTOS DE PRODUCTOS
 // ============================================================
 
 async function iniciarCamara() {
@@ -306,7 +294,7 @@ function mostrarSeccion(id) {
         if (!el) return;
         const activo = s === 'sec-' + id;
         if (activo) {
-            el.style.display = s === 'sec-pos' ? 'flex' : 'flex';
+            el.style.display = 'flex';
             el.style.opacity = '0';
             requestAnimationFrame(() => {
                 el.style.transition = 'opacity 0.18s ease';
@@ -338,7 +326,6 @@ function mostrarSeccion(id) {
         setTimeout(() => {
             const search = document.getElementById('pos-search');
             if (search) search.focus({ preventScroll: true });
-            // Arrancar escáner automáticamente en modo silencioso
             _arrancarEscanerSilencioso();
         }, 400);
     }
@@ -459,7 +446,6 @@ function renderTienda(filtro) {
             (p.codigo && p.codigo.toLowerCase().includes(filtro.toLowerCase())))
         : productos;
 
-    // DocumentFragment: un solo reflow en vez de uno por producto
     const frag = document.createDocumentFragment();
     lista.forEach(p => {
         const stockColor = p.stock <= 5 ? 'red' : '#666';
@@ -497,13 +483,12 @@ function calcularVuelto() {
 
 let productoSeleccionadoID = null;
 
-// ── ESCÁNER SILENCIOSO (siempre activo en Ventas) ──
+// ── ESCÁNER SILENCIOSO ──
 let streamSilencioso  = null;
 let loopSilencioso    = null;
 let scannerSilActivo  = false;
 
 async function _arrancarEscanerSilencioso() {
-    // Si ya está activo no arrancar de nuevo
     if (scannerSilActivo) return;
     scannerSilActivo = true;
 
@@ -532,7 +517,6 @@ async function _arrancarEscanerSilencioso() {
                     if (codes.length > 0) {
                         const codigo = codes[0].rawValue.trim();
                         const ahora  = Date.now();
-                        // Evitar leer el mismo código 2 veces en menos de 2 segundos
                         if (codigo !== ultimoCodigo || (ahora - ultimoTiempo) > 2000) {
                             ultimoCodigo = codigo;
                             ultimoTiempo = ahora;
@@ -548,7 +532,6 @@ async function _arrancarEscanerSilencioso() {
             }
             loopSilencioso = requestAnimationFrame(tickSil);
         } else {
-            // Fallback ZXing
             const reader = new ZXing.BrowserMultiFormatReader();
             window._zxingSil = reader;
             reader.decodeFromConstraints(
@@ -587,8 +570,6 @@ function _detenerEscanerSilencioso() {
     if (v) v.srcObject = null;
 }
 
-// ── ESCÁNER MANUAL (botón 📷, para registro o ventas) ──
-// Agrega desde el GRID (click manual) → muestra modal de cantidad
 function agregarCarrito(id) {
     const p = productos.find(x => x.id === id);
     if (p) {
@@ -604,7 +585,6 @@ function agregarCarrito(id) {
     }
 }
 
-// Agrega desde el ESCÁNER → directo, sin modal, suma 1 cada vez
 function agregarDirecto(id) {
     const p = productos.find(x => x.id === id);
     if (!p) return;
@@ -670,34 +650,90 @@ function quitarUno(id) {
     }
 }
 
+// ============================================================
+//  renderBoleta — FIX: precio no duplicado al imprimir
+// ============================================================
 function renderBoleta() {
     const box = document.getElementById('carrito-items');
     let total = 0;
     box.innerHTML = '';
-    carrito.forEach((i, index) => {
-        const subtotal = i.precio * i.cant;
+
+    carrito.forEach((item, index) => {
+        const subtotal = item.precio * item.cant;
         total += subtotal;
-        box.innerHTML += `
-            <div class="item-boleta-linea" style="margin-bottom:6px; font-size:11px; color:#000; font-family:'Courier New',monospace;">
-                <!-- Línea 1: cantidad x nombre (pantalla) / cantidad x nombre (ticket) -->
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="display:flex; gap:4px; flex:1; overflow:hidden;">
-                        <span style="font-weight:800; white-space:nowrap;">${i.cant}x</span>
-                        <span style="text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${i.nombre}</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
-                        <span style="font-weight:800;">S/</span>
-                        <input type="number" value="${i.precio.toFixed(2)}" step="0.10"
-                               style="width:45px; border:none; background:transparent; font-weight:800; text-align:right; color:#000; outline:none; padding:0; font-family:'Courier New',monospace; font-size:11px;"
-                               onchange="modificarPrecioCarrito(${index}, this.value)">
-                        <span class="precio-print" style="display:none; font-weight:800;">${i.precio.toFixed(2)}</span>
-                        <button class="no-print" onclick="quitarUno('${i.id}')" style="background:none; border:none; cursor:pointer; color:#ff4757; font-weight:bold; font-size:12px; padding:0 2px;">➖</button>
-                    </div>
-                </div>
-                <!-- Línea 2: precio unitario × cantidad = subtotal (solo si cant > 1) -->
-                ${i.cant > 1 ? `<div style="color:#666; font-size:10px; padding-left:18px;">S/ ${i.precio.toFixed(2)} x ${i.cant} = S/ ${subtotal.toFixed(2)}</div>` : ''}
-            </div>`;
+
+        const linea = document.createElement('div');
+        linea.style.cssText = 'margin-bottom:6px; font-size:11px; color:#000; font-family:Courier New,monospace;';
+
+        // ── Fila pantalla (se oculta al imprimir) ──
+        const filaPantalla = document.createElement('div');
+        filaPantalla.className = 'fila-pantalla no-print';
+        filaPantalla.style.cssText = 'display:flex; justify-content:space-between; align-items:center;';
+
+        const izq = document.createElement('div');
+        izq.style.cssText = 'display:flex; gap:4px; flex:1; overflow:hidden;';
+        izq.innerHTML = `<span style="font-weight:800; white-space:nowrap;">${item.cant}x</span>
+                         <span style="text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.nombre}</span>`;
+
+        const der = document.createElement('div');
+        der.style.cssText = 'display:flex; align-items:center; gap:4px; flex-shrink:0;';
+
+        const labelS = document.createElement('span');
+        labelS.style.fontWeight = '800';
+        labelS.textContent = 'S/';
+
+        // Input editable (solo pantalla)
+        const inputPrecio = document.createElement('input');
+        inputPrecio.type = 'number';
+        inputPrecio.value = item.precio.toFixed(2);
+        inputPrecio.step = '0.10';
+        inputPrecio.style.cssText = 'width:45px; border:none; background:transparent; font-weight:800; text-align:right; color:#000; outline:none; padding:0; font-family:Courier New,monospace; font-size:11px;';
+        inputPrecio.addEventListener('change', function() {
+            modificarPrecioCarrito(index, this.value);
+        });
+
+        // Botón quitar
+        const btnQuitar = document.createElement('button');
+        btnQuitar.className = 'no-print';
+        btnQuitar.textContent = '➖';
+        btnQuitar.style.cssText = 'background:none; border:none; cursor:pointer; color:#ff4757; font-weight:bold; font-size:12px; padding:0 2px;';
+        btnQuitar.addEventListener('click', (function(id) {
+            return function() { quitarUno(id); };
+        })(item.id));
+
+        der.appendChild(labelS);
+        der.appendChild(inputPrecio);
+        der.appendChild(btnQuitar);
+        filaPantalla.appendChild(izq);
+        filaPantalla.appendChild(der);
+
+        // ── Fila impresión (solo visible al imprimir) ──
+        // Muestra: "7x LIGA POMO N                S/ 168.00"
+        const filaImpresion = document.createElement('div');
+        filaImpresion.className = 'fila-impresion solo-print';
+        filaImpresion.style.cssText = 'display:none; justify-content:space-between; align-items:center;';
+        filaImpresion.innerHTML = `
+            <div style="display:flex; gap:4px; flex:1; overflow:hidden;">
+                <span style="font-weight:800; white-space:nowrap;">${item.cant}x</span>
+                <span style="text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.nombre}</span>
+            </div>
+            <span style="font-weight:800; flex-shrink:0;">S/ ${subtotal.toFixed(2)}</span>`;
+
+        linea.appendChild(filaPantalla);
+        linea.appendChild(filaImpresion);
+
+        // Desglose si cant > 1 (pantalla)
+        if (item.cant > 1) {
+            const desglose = document.createElement('div');
+            desglose.className = 'no-print';
+            desglose.style.cssText = 'color:#666; font-size:10px; padding-left:18px;';
+            desglose.textContent = `S/ ${item.precio.toFixed(2)} x ${item.cant} = S/ ${subtotal.toFixed(2)}`;
+            linea.appendChild(desglose);
+        }
+
+        box.appendChild(linea);
     });
+
     document.getElementById('pos-total').innerText = 'S/ ' + total.toFixed(2);
     calcularVuelto();
 }
@@ -769,7 +805,6 @@ async function finalizarVenta() {
     link.download = `${numTicket}.pdf`;
     link.click();
 
-    // Imprimir y limpiar SOLO después de que se cierre el diálogo de impresión
     const afterPrint = () => {
         limpiarCarrito();
         document.getElementById('cliente-dni').value = '';
@@ -787,13 +822,11 @@ function filtrarPOS(val) {
     const qLower   = q.toLowerCase();
     const buscador = document.getElementById('pos-search');
 
-    // Campo vacío → mostrar todo
     if (q === '') {
         renderTienda();
         return;
     }
 
-    // Coincidencia EXACTA de código → agregar directo (escáner físico o USB)
     const exacto = productos.find(p => p.codigo === q);
     if (exacto) {
         if (parseInt(exacto.stock) <= 0) {
@@ -806,13 +839,11 @@ function filtrarPOS(val) {
         return;
     }
 
-    // Búsqueda parcial por nombre O código → mostrar tarjetas filtradas
     const resultados = productos.filter(p =>
         p.nombre.toLowerCase().includes(qLower) ||
         (p.codigo && p.codigo.toLowerCase().includes(qLower))
     );
 
-    // Si hay un solo resultado y es búsqueda por Enter, agregarlo directo
     if (resultados.length === 1 && buscador._enterPressed) {
         buscador._enterPressed = false;
         if (parseInt(resultados[0].stock) <= 0) {
@@ -938,13 +969,14 @@ async function descargarTodoPDF() {
 
         if (v.detalleCarrito) {
             v.detalleCarrito.forEach(i => {
+                const subtotal = i.precio * i.cant;
                 box.innerHTML += `
                     <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:4px; color:#000; font-family:monospace;">
                         <div style="display:flex; gap:4px;">
                             <b style="font-weight:800;">${i.cant}x</b>
                             <span style="text-transform:uppercase;">${i.nombre}</span>
                         </div>
-                        <b style="font-weight:800;">S/ ${i.precio.toFixed(2)}</b>
+                        <b style="font-weight:800;">S/ ${subtotal.toFixed(2)}</b>
                     </div>`;
             });
         } else {
@@ -970,7 +1002,6 @@ async function reimprimirTicket(id) {
     const v = todasLasVentas.find(x => x.id === id);
     if (!v) return;
 
-    // Guardamos el estado actual del carrito para restaurarlo después
     const carritoBackup      = JSON.parse(JSON.stringify(carrito));
     const ticketBackup       = document.getElementById('num-ticket').innerText;
     const fechaBackup        = document.getElementById('fecha-boleta').innerText;
@@ -980,7 +1011,6 @@ async function reimprimirTicket(id) {
     const pagoBackup         = document.getElementById('pago-cliente').value;
     const carritoItemsBackup = document.getElementById('carrito-items').innerHTML;
 
-    // Rellenamos la boleta con los datos de la venta a reimprimir
     document.getElementById('num-ticket').innerText    = v.ticket;
     document.getElementById('fecha-boleta').innerText  = v.fecha;
     document.getElementById('pos-total').innerText     = 'S/ ' + v.total.toFixed(2);
@@ -992,13 +1022,14 @@ async function reimprimirTicket(id) {
     box.innerHTML = '';
     if (v.detalleCarrito) {
         v.detalleCarrito.forEach(i => {
+            const subtotal = i.precio * i.cant;
             box.innerHTML += `
                 <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:4px; color:#000; font-family:monospace;">
                     <div style="display:flex; gap:4px;">
                         <b style="font-weight:800;">${i.cant}x</b>
                         <span style="text-transform:uppercase;">${i.nombre}</span>
                     </div>
-                    <b style="font-weight:800;">S/ ${i.precio.toFixed(2)}</b>
+                    <b style="font-weight:800;">S/ ${subtotal.toFixed(2)}</b>
                 </div>`;
         });
     } else {
@@ -1007,7 +1038,6 @@ async function reimprimirTicket(id) {
         });
     }
 
-    // Descargar PDF
     const pdfBlob = await bajarPDFBoleta(v.ticket);
     const url  = URL.createObjectURL(pdfBlob);
     const link = document.createElement('a');
@@ -1015,7 +1045,6 @@ async function reimprimirTicket(id) {
     link.download = `${v.ticket}.pdf`;
     link.click();
 
-    // Restaurar estado original después de imprimir
     const restaurar = () => {
         carrito = carritoBackup;
         document.getElementById('num-ticket').innerText     = ticketBackup;
@@ -1048,7 +1077,6 @@ async function exportarExcel() {
 
     if (filtradas.length === 0) return mostrarNotificacion('No hay ventas en ese rango');
 
-    // ── Consolidar productos ──
     const consolidado = {};
     filtradas.forEach(v => {
         if (v.detalleCarrito) {
@@ -1066,7 +1094,6 @@ async function exportarExcel() {
     const periodoTexto = fDesde && fHasta ? `${fDesde} al ${fHasta}` : new Date().toLocaleDateString('es-PE');
     const fechaArchivo = new Date().toISOString().slice(0, 10);
 
-    // ── Construir HTML del reporte (igual al PDF de referencia) ──
     const filas = lista.map((p, i) => `
         <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
             <td style="padding:7px 10px; border:1px solid #dee2e6; text-align:center;">${i + 1}</td>
@@ -1077,21 +1104,15 @@ async function exportarExcel() {
 
     const htmlReporte = `
         <div style="font-family: Arial, sans-serif; padding: 30px; color: #000; max-width: 750px; margin: 0 auto;">
-
-            <!-- ENCABEZADO -->
             <div style="border-bottom: 3px solid #2f3542; padding-bottom: 15px; margin-bottom: 20px;">
                 <h1 style="margin:0; font-size:1.6rem; color:#2f3542; letter-spacing:2px;">VANE STORE</h1>
                 <p style="margin:4px 0; font-size:0.85rem; color:#555;">RUC: 10612629230</p>
                 <p style="margin:4px 0; font-size:0.85rem; color:#555;">Calle 7 #170 Av. Buenos Aires</p>
             </div>
-
-            <!-- TÍTULO REPORTE -->
             <div style="background:#2f3542; color:white; padding:10px 15px; border-radius:6px; margin-bottom:20px;">
                 <h2 style="margin:0; font-size:1rem; letter-spacing:1px;">CONSOLIDADO DE ITEMS — TOTALES</h2>
                 <p style="margin:4px 0 0; font-size:0.8rem; opacity:0.8;">Período: ${periodoTexto} &nbsp;|&nbsp; Ventas: ${filtradas.length} &nbsp;|&nbsp; Generado: ${new Date().toLocaleString('es-PE')}</p>
             </div>
-
-            <!-- TABLA -->
             <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
                 <thead>
                     <tr style="background:#2f3542; color:white;">
@@ -1101,9 +1122,7 @@ async function exportarExcel() {
                         <th style="padding:9px 10px; border:1px solid #2f3542; text-align:right; width:130px;">Total de Venta</th>
                     </tr>
                 </thead>
-                <tbody>
-                    ${filas}
-                </tbody>
+                <tbody>${filas}</tbody>
                 <tfoot>
                     <tr style="background:#2ed573; font-weight:bold;">
                         <td colspan="2" style="padding:9px 10px; border:1px solid #28c26a; text-align:right;">TOTAL GENERAL</td>
@@ -1112,8 +1131,6 @@ async function exportarExcel() {
                     </tr>
                 </tfoot>
             </table>
-
-            <!-- RESUMEN -->
             <div style="margin-top:20px; display:flex; gap:20px; flex-wrap:wrap;">
                 <div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:12px 20px; min-width:150px;">
                     <div style="font-size:0.72rem; color:#666; text-transform:uppercase; letter-spacing:1px;">N° de Ventas</div>
@@ -1132,14 +1149,11 @@ async function exportarExcel() {
                     <div style="font-size:1.5rem; font-weight:bold; color:#2f3542;">${lista.length}</div>
                 </div>
             </div>
-
-            <!-- PIE -->
             <div style="margin-top:25px; border-top:1px solid #dee2e6; padding-top:10px; font-size:0.75rem; color:#999; text-align:center;">
                 Reporte generado por VANE STORE POS · ${new Date().toLocaleString('es-PE')}
             </div>
         </div>`;
 
-    // ── Crear div temporal, convertir a PDF con html2pdf ──
     mostrarNotificacion('⚙️ Generando reporte PDF...');
     const contenedor = document.createElement('div');
     contenedor.innerHTML = htmlReporte;
@@ -1167,7 +1181,6 @@ function toggleDarkMode() {
 // --- INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Input cantidad — Enter confirma
     const inputCant = document.getElementById('input-cantidad-manual');
     if (inputCant) {
         inputCant.addEventListener('keypress', (e) => {
@@ -1175,7 +1188,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Input código en registro — Enter salta al nombre
     const inputCodigoReg = document.getElementById('prod-codigo');
     if (inputCodigoReg) {
         inputCodigoReg.addEventListener('keypress', (e) => {
@@ -1186,20 +1198,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Foco automático en buscador al hacer click fuera de inputs/modales
     document.addEventListener('click', (e) => {
         const secPos = document.getElementById('sec-pos');
         if (secPos && secPos.style.display !== 'none') {
             const esInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
             const esModal = e.target.closest('.modal-vane') || e.target.closest('#modal-cantidad') || e.target.closest('#scanner-overlay');
             if (!esInput && !esModal) {
-                // preventScroll evita que el navegador haga scroll hacia arriba
                 document.getElementById('pos-search').focus({ preventScroll: true });
             }
         }
     });
 
-    // Buscador — escáner físico / teclado
     const posSearch = document.getElementById('pos-search');
     if (posSearch) {
         posSearch.addEventListener('input',   (e) => filtrarPOS(e.target.value));
@@ -1210,11 +1219,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 filtrarPOS(posSearch.value);
             }
         });
+        posSearch.addEventListener('focus', () => {
+            posSearch.setAttribute('autocomplete', 'off');
+            posSearch.setAttribute('readonly', 'readonly');
+            setTimeout(() => posSearch.removeAttribute('readonly'), 50);
+        });
     }
 
-    // Cerrar scanner-overlay con tecla Escape
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && scannerActivo) cerrarEscaner();
+        if (e.key === 'Escape' && scannerAbierto) cerrarEscaner();
     });
 });
 

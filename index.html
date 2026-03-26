@@ -209,7 +209,12 @@
                     <input type="text" id="pos-search"
                            placeholder="⚡ LISTO PARA ESCANEAR..."
                            onkeyup="filtrarPOS(this.value)"
-                           autocomplete="off">
+                           autocomplete="off"
+                           autocorrect="off"
+                           autocapitalize="off"
+                           spellcheck="false"
+                           inputmode="text"
+                           name="pos-search-unique-x99">
 
                     <!-- 📷 BOTÓN ESCÁNER CÁMARA -->
                     <button id="btn-abrir-scanner" onclick="abrirEscaner()" title="Escanear con cámara">📷</button>
