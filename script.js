@@ -483,7 +483,10 @@ function calcularVuelto() {
 
 let productoSeleccionadoID = null;
 
-// ── ESCÁNER SILENCIOSO ──
+// ============================================================
+//  ESCÁNER SILENCIOSO — BUG FIX APLICADO ✅
+//  El código ya no reaparece solo en el buscador
+// ============================================================
 let streamSilencioso  = null;
 let loopSilencioso    = null;
 let scannerSilActivo  = false;
@@ -522,15 +525,27 @@ async function _arrancarEscanerSilencioso() {
                             ultimoTiempo = ahora;
                             console.log('🔍 Escáner silencioso:', codigo);
                             if (navigator.vibrate) navigator.vibrate([80]);
+
+                            // ✅ FIX: solo escribir si el buscador está vacío
                             const buscador = document.getElementById('pos-search');
-                            buscador.value = codigo;
-                            filtrarPOS(codigo);
+                            if (buscador.value.trim() === '') {
+                                buscador.value = codigo;
+                                filtrarPOS(codigo);
+                                // Si filtrarPOS no limpió el campo, lo limpiamos tras 1.5s
+                                setTimeout(() => {
+                                    if (buscador.value === codigo) {
+                                        buscador.value = '';
+                                        renderTienda();
+                                    }
+                                }, 1500);
+                            }
                         }
                     }
                 } catch(e) {}
                 loopSilencioso = requestAnimationFrame(tickSil);
             }
             loopSilencioso = requestAnimationFrame(tickSil);
+
         } else {
             const reader = new ZXing.BrowserMultiFormatReader();
             window._zxingSil = reader;
@@ -546,9 +561,20 @@ async function _arrancarEscanerSilencioso() {
                             ultimoCodigo = codigo;
                             ultimoTiempo = ahora;
                             if (navigator.vibrate) navigator.vibrate([80]);
+
+                            // ✅ FIX: solo escribir si el buscador está vacío
                             const buscador = document.getElementById('pos-search');
-                            buscador.value = codigo;
-                            filtrarPOS(codigo);
+                            if (buscador.value.trim() === '') {
+                                buscador.value = codigo;
+                                filtrarPOS(codigo);
+                                // Si filtrarPOS no limpió el campo, lo limpiamos tras 1.5s
+                                setTimeout(() => {
+                                    if (buscador.value === codigo) {
+                                        buscador.value = '';
+                                        renderTienda();
+                                    }
+                                }, 1500);
+                            }
                         }
                     }
                 }
@@ -708,7 +734,6 @@ function renderBoleta() {
         filaPantalla.appendChild(der);
 
         // ── Fila impresión (solo visible al imprimir) ──
-        // Muestra: "7x LIGA POMO N                S/ 168.00"
         const filaImpresion = document.createElement('div');
         filaImpresion.className = 'fila-impresion solo-print';
         filaImpresion.style.cssText = 'display:none; justify-content:space-between; align-items:center;';
