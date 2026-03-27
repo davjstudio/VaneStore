@@ -32,6 +32,7 @@ db.ref('productos').on('value', (snapshot) => {
             nuevos.push({ id: key, ...data[key] });
         });
     }
+    // Solo re-renderizar si algo cambió de verdad
     if (JSON.stringify(nuevos) !== JSON.stringify(productos)) {
         productos = nuevos;
         const secPos = document.getElementById('sec-pos');
@@ -77,6 +78,7 @@ async function _iniciarEscaner() {
 
     const videoEl = document.getElementById('scanner-video');
 
+    // Pedir cámara
     try {
         streamEscaner = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
@@ -89,9 +91,10 @@ async function _iniciarEscaner() {
         return;
     }
 
+    // Esperar que el video cargue
     await new Promise(res => {
         videoEl.onloadedmetadata = () => res();
-        setTimeout(res, 2000);
+        setTimeout(res, 2000); // timeout fallback
     });
 
     const motor = 'BarcodeDetector' in window ? '⚡ Motor: BarcodeDetector (nativo)' : '⚡ Motor: ZXing (fallback)';
@@ -99,6 +102,7 @@ async function _iniciarEscaner() {
     const engineEl = document.getElementById('scanner-engine');
     if (engineEl) engineEl.textContent = motor;
 
+    // Elegir motor de lectura
     if ('BarcodeDetector' in window) {
         _leerConBarcodeDetector(videoEl);
     } else {
@@ -106,6 +110,7 @@ async function _iniciarEscaner() {
     }
 }
 
+// ── MOTOR 1: BarcodeDetector (nativo Chrome, el más confiable) ──
 async function _leerConBarcodeDetector(videoEl) {
     const detector = new BarcodeDetector({
         formats: ['ean_13','ean_8','code_128','code_39','upc_a','upc_e','qr_code','itf','codabar']
@@ -121,14 +126,18 @@ async function _leerConBarcodeDetector(videoEl) {
                 _codigoDetectado(codigo);
                 return;
             }
-        } catch(e) {}
+        } catch(e) { /* frame sin código, normal */ }
         scanLoop = requestAnimationFrame(tick);
     }
     scanLoop = requestAnimationFrame(tick);
 }
 
+// ── MOTOR 2: ZXing fallback ──
 function _leerConZXing(videoEl) {
-    let codeReader;
+    const capCanvas = document.createElement('canvas');
+    const capCtx    = capCanvas.getContext('2d');
+    let   codeReader;
+
     try {
         codeReader = new ZXing.BrowserMultiFormatReader();
         codeReader.decodeFromConstraints(
@@ -143,6 +152,7 @@ function _leerConZXing(videoEl) {
                 }
             }
         );
+        // Guardar ref para poder parar
         window._zxingInstance = codeReader;
     } catch(e) {
         mostrarNotificacion('⚠️ Error al iniciar lector: ' + e.message);
@@ -150,6 +160,7 @@ function _leerConZXing(videoEl) {
     }
 }
 
+// ── Código detectado: acción según modo ──
 function _codigoDetectado(codigo) {
     if (!scannerAbierto) return;
     if (navigator.vibrate) navigator.vibrate([120]);
@@ -167,9 +178,8 @@ function _codigoDetectado(codigo) {
             campo.style.boxShadow = '';
         }, 900);
     } else {
-        const buscador = document.getElementById('pos-search');
-        buscador.value = codigo;
-        filtrarPOS(codigo);
+        // Usar debounce global para evitar doble disparo con escáner silencioso
+        _procesarCodigoEscaneado(codigo);
     }
 }
 
@@ -212,8 +222,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+
 // ============================================================
-//  CÁMARA PARA FOTOS DE PRODUCTOS
+//  CÁMARA PARA FOTOS DE PRODUCTOS (código original sin cambios)
 // ============================================================
 
 async function iniciarCamara() {
@@ -294,7 +305,7 @@ function mostrarSeccion(id) {
         if (!el) return;
         const activo = s === 'sec-' + id;
         if (activo) {
-            el.style.display = 'flex';
+            el.style.display = s === 'sec-pos' ? 'flex' : 'flex';
             el.style.opacity = '0';
             requestAnimationFrame(() => {
                 el.style.transition = 'opacity 0.18s ease';
@@ -326,7 +337,6 @@ function mostrarSeccion(id) {
         setTimeout(() => {
             const search = document.getElementById('pos-search');
             if (search) search.focus({ preventScroll: true });
-            _arrancarEscanerSilencioso();
         }, 400);
     }
 }
@@ -446,6 +456,7 @@ function renderTienda(filtro) {
             (p.codigo && p.codigo.toLowerCase().includes(filtro.toLowerCase())))
         : productos;
 
+    // DocumentFragment: un solo reflow en vez de uno por producto
     const frag = document.createDocumentFragment();
     lista.forEach(p => {
         const stockColor = p.stock <= 5 ? 'red' : '#666';
@@ -484,16 +495,68 @@ function calcularVuelto() {
 let productoSeleccionadoID = null;
 
 // ============================================================
-//  ESCÁNER SILENCIOSO — BUG FIX APLICADO ✅
-//  El código ya no reaparece solo en el buscador
+//  ESCÁNER SILENCIOSO — TOGGLE (botón enciende/apaga)
 // ============================================================
 let streamSilencioso  = null;
 let loopSilencioso    = null;
 let scannerSilActivo  = false;
+let _ultimoCodigoGlobal = '';
+let _ultimoTiempoGlobal = 0;
+
+function toggleEscanerSilencioso() {
+    if (scannerSilActivo) {
+        _detenerEscanerSilencioso();
+    } else {
+        _arrancarEscanerSilencioso();
+    }
+}
+
+// Función centralizada anti-doble-disparo
+function _procesarCodigoEscaneado(codigo) {
+    const ahora = Date.now();
+    // Ignorar si es el mismo código en menos de 2.5 segundos
+    if (codigo === _ultimoCodigoGlobal && (ahora - _ultimoTiempoGlobal) < 2500) {
+        console.log('🚫 Código ignorado (doble disparo):', codigo);
+        return;
+    }
+    _ultimoCodigoGlobal = codigo;
+    _ultimoTiempoGlobal = ahora;
+
+    if (navigator.vibrate) navigator.vibrate([80]);
+    const buscador = document.getElementById('pos-search');
+    buscador.value = codigo;
+    filtrarPOS(codigo);
+    setTimeout(() => {
+        if (buscador.value === codigo) {
+            buscador.value = '';
+            renderTienda();
+        }
+    }, 1500);
+}
+
+function _actualizarBotonEscaner(activo) {
+    const btn = document.getElementById('btn-abrir-scanner');
+    if (!btn) return;
+    if (activo) {
+        btn.textContent = '🟢';
+        btn.title       = 'Escáner ACTIVO — clic para apagar';
+        btn.style.background  = '#00c853';
+        btn.style.boxShadow   = '0 0 0 4px rgba(46,213,115,0.5)';
+        btn.style.transform   = 'translateY(-50%) scale(1.15)';
+    } else {
+        btn.textContent = '📷';
+        btn.title       = 'Activar escáner';
+        btn.style.background  = '#2ed573';
+        btn.style.boxShadow   = '0 2px 8px rgba(46,213,115,0.4)';
+        btn.style.transform   = 'translateY(-50%)';
+    }
+}
 
 async function _arrancarEscanerSilencioso() {
     if (scannerSilActivo) return;
     scannerSilActivo = true;
+    _actualizarBotonEscaner(true);
+    mostrarNotificacion('📷 Escáner activado');
 
     try {
         streamSilencioso = await navigator.mediaDevices.getUserMedia({
@@ -503,11 +566,7 @@ async function _arrancarEscanerSilencioso() {
         const videoSil = document.getElementById('scanner-video-sil');
         videoSil.srcObject = streamSilencioso;
         await videoSil.play();
-
         await new Promise(res => { videoSil.onloadedmetadata = res; setTimeout(res, 2000); });
-
-        let ultimoCodigo = '';
-        let ultimoTiempo = 0;
 
         if ('BarcodeDetector' in window) {
             const detector = new BarcodeDetector({
@@ -519,82 +578,43 @@ async function _arrancarEscanerSilencioso() {
                     const codes = await detector.detect(videoSil);
                     if (codes.length > 0) {
                         const codigo = codes[0].rawValue.trim();
-                        const ahora  = Date.now();
-                        if (codigo !== ultimoCodigo || (ahora - ultimoTiempo) > 2000) {
-                            ultimoCodigo = codigo;
-                            ultimoTiempo = ahora;
-                            console.log('🔍 Escáner silencioso:', codigo);
-                            if (navigator.vibrate) navigator.vibrate([80]);
-
-                            // ✅ FIX: solo escribir si el buscador está vacío
-                            const buscador = document.getElementById('pos-search');
-                            if (buscador.value.trim() === '') {
-                                buscador.value = codigo;
-                                filtrarPOS(codigo);
-                                // Si filtrarPOS no limpió el campo, lo limpiamos tras 1.5s
-                                setTimeout(() => {
-                                    if (buscador.value === codigo) {
-                                        buscador.value = '';
-                                        renderTienda();
-                                    }
-                                }, 1500);
-                            }
-                        }
+                        _procesarCodigoEscaneado(codigo);
                     }
                 } catch(e) {}
                 loopSilencioso = requestAnimationFrame(tickSil);
             }
             loopSilencioso = requestAnimationFrame(tickSil);
-
         } else {
             const reader = new ZXing.BrowserMultiFormatReader();
             window._zxingSil = reader;
             reader.decodeFromConstraints(
                 { video: { facingMode: 'environment' } },
                 'scanner-video-sil',
-                (result, err) => {
-                    if (!scannerSilActivo) return;
-                    if (result) {
-                        const codigo  = result.getText().trim();
-                        const ahora   = Date.now();
-                        if (codigo !== ultimoCodigo || (ahora - ultimoTiempo) > 2000) {
-                            ultimoCodigo = codigo;
-                            ultimoTiempo = ahora;
-                            if (navigator.vibrate) navigator.vibrate([80]);
-
-                            // ✅ FIX: solo escribir si el buscador está vacío
-                            const buscador = document.getElementById('pos-search');
-                            if (buscador.value.trim() === '') {
-                                buscador.value = codigo;
-                                filtrarPOS(codigo);
-                                // Si filtrarPOS no limpió el campo, lo limpiamos tras 1.5s
-                                setTimeout(() => {
-                                    if (buscador.value === codigo) {
-                                        buscador.value = '';
-                                        renderTienda();
-                                    }
-                                }, 1500);
-                            }
-                        }
-                    }
+                (result) => {
+                    if (!scannerSilActivo || !result) return;
+                    const codigo = result.getText().trim();
+                    _procesarCodigoEscaneado(codigo);
                 }
             );
         }
-        console.log('✅ Escáner silencioso activo');
     } catch(err) {
         scannerSilActivo = false;
-        console.warn('Escáner silencioso no disponible:', err.message);
+        _actualizarBotonEscaner(false);
+        mostrarNotificacion('⚠️ No se pudo activar: ' + err.message);
     }
 }
 
 function _detenerEscanerSilencioso() {
     scannerSilActivo = false;
+    _actualizarBotonEscaner(false);
     if (loopSilencioso) { cancelAnimationFrame(loopSilencioso); loopSilencioso = null; }
     if (window._zxingSil) { try { window._zxingSil.reset(); } catch(e) {} window._zxingSil = null; }
     if (streamSilencioso) { streamSilencioso.getTracks().forEach(t => t.stop()); streamSilencioso = null; }
     const v = document.getElementById('scanner-video-sil');
     if (v) v.srcObject = null;
+    mostrarNotificacion('📷 Escáner apagado');
 }
+
 
 function agregarCarrito(id) {
     const p = productos.find(x => x.id === id);
@@ -611,6 +631,7 @@ function agregarCarrito(id) {
     }
 }
 
+// Agrega desde el ESCÁNER → directo, sin modal, suma 1 cada vez
 function agregarDirecto(id) {
     const p = productos.find(x => x.id === id);
     if (!p) return;
@@ -676,9 +697,6 @@ function quitarUno(id) {
     }
 }
 
-// ============================================================
-//  renderBoleta — FIX: precio no duplicado al imprimir
-// ============================================================
 function renderBoleta() {
     const box = document.getElementById('carrito-items');
     let total = 0;
@@ -688,19 +706,21 @@ function renderBoleta() {
         const subtotal = item.precio * item.cant;
         total += subtotal;
 
+        // Contenedor principal
         const linea = document.createElement('div');
         linea.style.cssText = 'margin-bottom:6px; font-size:11px; color:#000; font-family:Courier New,monospace;';
 
-        // ── Fila pantalla (se oculta al imprimir) ──
-        const filaPantalla = document.createElement('div');
-        filaPantalla.className = 'fila-pantalla no-print';
-        filaPantalla.style.cssText = 'display:flex; justify-content:space-between; align-items:center;';
+        // Fila superior
+        const fila = document.createElement('div');
+        fila.style.cssText = 'display:flex; justify-content:space-between; align-items:center;';
 
+        // Nombre + cantidad
         const izq = document.createElement('div');
         izq.style.cssText = 'display:flex; gap:4px; flex:1; overflow:hidden;';
         izq.innerHTML = `<span style="font-weight:800; white-space:nowrap;">${item.cant}x</span>
                          <span style="text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.nombre}</span>`;
 
+        // Precio + botón
         const der = document.createElement('div');
         der.style.cssText = 'display:flex; align-items:center; gap:4px; flex-shrink:0;';
 
@@ -708,7 +728,7 @@ function renderBoleta() {
         labelS.style.fontWeight = '800';
         labelS.textContent = 'S/';
 
-        // Input editable (solo pantalla)
+        // Input precio (pantalla)
         const inputPrecio = document.createElement('input');
         inputPrecio.type = 'number';
         inputPrecio.value = item.precio.toFixed(2);
@@ -718,7 +738,13 @@ function renderBoleta() {
             modificarPrecioCarrito(index, this.value);
         });
 
-        // Botón quitar
+        // Span precio (impresión)
+        const spanPrecio = document.createElement('span');
+        spanPrecio.className = 'precio-print';
+        spanPrecio.style.cssText = 'display:none; font-weight:800;';
+        spanPrecio.textContent = item.precio.toFixed(2);
+
+        // Botón quitar — usa closure para capturar el id correcto
         const btnQuitar = document.createElement('button');
         btnQuitar.className = 'no-print';
         btnQuitar.textContent = '➖';
@@ -729,28 +755,16 @@ function renderBoleta() {
 
         der.appendChild(labelS);
         der.appendChild(inputPrecio);
+        der.appendChild(spanPrecio);
         der.appendChild(btnQuitar);
-        filaPantalla.appendChild(izq);
-        filaPantalla.appendChild(der);
 
-        // ── Fila impresión (solo visible al imprimir) ──
-        const filaImpresion = document.createElement('div');
-        filaImpresion.className = 'fila-impresion solo-print';
-        filaImpresion.style.cssText = 'display:none; justify-content:space-between; align-items:center;';
-        filaImpresion.innerHTML = `
-            <div style="display:flex; gap:4px; flex:1; overflow:hidden;">
-                <span style="font-weight:800; white-space:nowrap;">${item.cant}x</span>
-                <span style="text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.nombre}</span>
-            </div>
-            <span style="font-weight:800; flex-shrink:0;">S/ ${subtotal.toFixed(2)}</span>`;
+        fila.appendChild(izq);
+        fila.appendChild(der);
+        linea.appendChild(fila);
 
-        linea.appendChild(filaPantalla);
-        linea.appendChild(filaImpresion);
-
-        // Desglose si cant > 1 (pantalla)
+        // Línea 2: desglose si cant > 1
         if (item.cant > 1) {
             const desglose = document.createElement('div');
-            desglose.className = 'no-print';
             desglose.style.cssText = 'color:#666; font-size:10px; padding-left:18px;';
             desglose.textContent = `S/ ${item.precio.toFixed(2)} x ${item.cant} = S/ ${subtotal.toFixed(2)}`;
             linea.appendChild(desglose);
@@ -830,6 +844,7 @@ async function finalizarVenta() {
     link.download = `${numTicket}.pdf`;
     link.click();
 
+    // Imprimir y limpiar SOLO después de que se cierre el diálogo de impresión
     const afterPrint = () => {
         limpiarCarrito();
         document.getElementById('cliente-dni').value = '';
@@ -847,11 +862,13 @@ function filtrarPOS(val) {
     const qLower   = q.toLowerCase();
     const buscador = document.getElementById('pos-search');
 
+    // Campo vacío → mostrar todo
     if (q === '') {
         renderTienda();
         return;
     }
 
+    // Coincidencia EXACTA de código → agregar directo (escáner físico o USB)
     const exacto = productos.find(p => p.codigo === q);
     if (exacto) {
         if (parseInt(exacto.stock) <= 0) {
@@ -864,11 +881,13 @@ function filtrarPOS(val) {
         return;
     }
 
+    // Búsqueda parcial por nombre O código → mostrar tarjetas filtradas
     const resultados = productos.filter(p =>
         p.nombre.toLowerCase().includes(qLower) ||
         (p.codigo && p.codigo.toLowerCase().includes(qLower))
     );
 
+    // Si hay un solo resultado y es búsqueda por Enter, agregarlo directo
     if (resultados.length === 1 && buscador._enterPressed) {
         buscador._enterPressed = false;
         if (parseInt(resultados[0].stock) <= 0) {
@@ -994,14 +1013,13 @@ async function descargarTodoPDF() {
 
         if (v.detalleCarrito) {
             v.detalleCarrito.forEach(i => {
-                const subtotal = i.precio * i.cant;
                 box.innerHTML += `
                     <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:4px; color:#000; font-family:monospace;">
                         <div style="display:flex; gap:4px;">
                             <b style="font-weight:800;">${i.cant}x</b>
                             <span style="text-transform:uppercase;">${i.nombre}</span>
                         </div>
-                        <b style="font-weight:800;">S/ ${subtotal.toFixed(2)}</b>
+                        <b style="font-weight:800;">S/ ${i.precio.toFixed(2)}</b>
                     </div>`;
             });
         } else {
@@ -1027,6 +1045,7 @@ async function reimprimirTicket(id) {
     const v = todasLasVentas.find(x => x.id === id);
     if (!v) return;
 
+    // Guardamos el estado actual del carrito para restaurarlo después
     const carritoBackup      = JSON.parse(JSON.stringify(carrito));
     const ticketBackup       = document.getElementById('num-ticket').innerText;
     const fechaBackup        = document.getElementById('fecha-boleta').innerText;
@@ -1036,6 +1055,7 @@ async function reimprimirTicket(id) {
     const pagoBackup         = document.getElementById('pago-cliente').value;
     const carritoItemsBackup = document.getElementById('carrito-items').innerHTML;
 
+    // Rellenamos la boleta con los datos de la venta a reimprimir
     document.getElementById('num-ticket').innerText    = v.ticket;
     document.getElementById('fecha-boleta').innerText  = v.fecha;
     document.getElementById('pos-total').innerText     = 'S/ ' + v.total.toFixed(2);
@@ -1047,14 +1067,13 @@ async function reimprimirTicket(id) {
     box.innerHTML = '';
     if (v.detalleCarrito) {
         v.detalleCarrito.forEach(i => {
-            const subtotal = i.precio * i.cant;
             box.innerHTML += `
                 <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:4px; color:#000; font-family:monospace;">
                     <div style="display:flex; gap:4px;">
                         <b style="font-weight:800;">${i.cant}x</b>
                         <span style="text-transform:uppercase;">${i.nombre}</span>
                     </div>
-                    <b style="font-weight:800;">S/ ${subtotal.toFixed(2)}</b>
+                    <b style="font-weight:800;">S/ ${i.precio.toFixed(2)}</b>
                 </div>`;
         });
     } else {
@@ -1063,6 +1082,7 @@ async function reimprimirTicket(id) {
         });
     }
 
+    // Descargar PDF
     const pdfBlob = await bajarPDFBoleta(v.ticket);
     const url  = URL.createObjectURL(pdfBlob);
     const link = document.createElement('a');
@@ -1070,6 +1090,7 @@ async function reimprimirTicket(id) {
     link.download = `${v.ticket}.pdf`;
     link.click();
 
+    // Restaurar estado original después de imprimir
     const restaurar = () => {
         carrito = carritoBackup;
         document.getElementById('num-ticket').innerText     = ticketBackup;
@@ -1102,6 +1123,7 @@ async function exportarExcel() {
 
     if (filtradas.length === 0) return mostrarNotificacion('No hay ventas en ese rango');
 
+    // ── Consolidar productos ──
     const consolidado = {};
     filtradas.forEach(v => {
         if (v.detalleCarrito) {
@@ -1119,6 +1141,7 @@ async function exportarExcel() {
     const periodoTexto = fDesde && fHasta ? `${fDesde} al ${fHasta}` : new Date().toLocaleDateString('es-PE');
     const fechaArchivo = new Date().toISOString().slice(0, 10);
 
+    // ── Construir HTML del reporte (igual al PDF de referencia) ──
     const filas = lista.map((p, i) => `
         <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f8f9fa'};">
             <td style="padding:7px 10px; border:1px solid #dee2e6; text-align:center;">${i + 1}</td>
@@ -1129,15 +1152,21 @@ async function exportarExcel() {
 
     const htmlReporte = `
         <div style="font-family: Arial, sans-serif; padding: 30px; color: #000; max-width: 750px; margin: 0 auto;">
+
+            <!-- ENCABEZADO -->
             <div style="border-bottom: 3px solid #2f3542; padding-bottom: 15px; margin-bottom: 20px;">
                 <h1 style="margin:0; font-size:1.6rem; color:#2f3542; letter-spacing:2px;">VANE STORE</h1>
                 <p style="margin:4px 0; font-size:0.85rem; color:#555;">RUC: 10612629230</p>
                 <p style="margin:4px 0; font-size:0.85rem; color:#555;">Calle 7 #170 Av. Buenos Aires</p>
             </div>
+
+            <!-- TÍTULO REPORTE -->
             <div style="background:#2f3542; color:white; padding:10px 15px; border-radius:6px; margin-bottom:20px;">
                 <h2 style="margin:0; font-size:1rem; letter-spacing:1px;">CONSOLIDADO DE ITEMS — TOTALES</h2>
                 <p style="margin:4px 0 0; font-size:0.8rem; opacity:0.8;">Período: ${periodoTexto} &nbsp;|&nbsp; Ventas: ${filtradas.length} &nbsp;|&nbsp; Generado: ${new Date().toLocaleString('es-PE')}</p>
             </div>
+
+            <!-- TABLA -->
             <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
                 <thead>
                     <tr style="background:#2f3542; color:white;">
@@ -1147,7 +1176,9 @@ async function exportarExcel() {
                         <th style="padding:9px 10px; border:1px solid #2f3542; text-align:right; width:130px;">Total de Venta</th>
                     </tr>
                 </thead>
-                <tbody>${filas}</tbody>
+                <tbody>
+                    ${filas}
+                </tbody>
                 <tfoot>
                     <tr style="background:#2ed573; font-weight:bold;">
                         <td colspan="2" style="padding:9px 10px; border:1px solid #28c26a; text-align:right;">TOTAL GENERAL</td>
@@ -1156,6 +1187,8 @@ async function exportarExcel() {
                     </tr>
                 </tfoot>
             </table>
+
+            <!-- RESUMEN -->
             <div style="margin-top:20px; display:flex; gap:20px; flex-wrap:wrap;">
                 <div style="background:#f8f9fa; border:1px solid #dee2e6; border-radius:8px; padding:12px 20px; min-width:150px;">
                     <div style="font-size:0.72rem; color:#666; text-transform:uppercase; letter-spacing:1px;">N° de Ventas</div>
@@ -1174,11 +1207,14 @@ async function exportarExcel() {
                     <div style="font-size:1.5rem; font-weight:bold; color:#2f3542;">${lista.length}</div>
                 </div>
             </div>
+
+            <!-- PIE -->
             <div style="margin-top:25px; border-top:1px solid #dee2e6; padding-top:10px; font-size:0.75rem; color:#999; text-align:center;">
                 Reporte generado por VANE STORE POS · ${new Date().toLocaleString('es-PE')}
             </div>
         </div>`;
 
+    // ── Crear div temporal, convertir a PDF con html2pdf ──
     mostrarNotificacion('⚙️ Generando reporte PDF...');
     const contenedor = document.createElement('div');
     contenedor.innerHTML = htmlReporte;
@@ -1206,6 +1242,7 @@ function toggleDarkMode() {
 // --- INICIALIZACIÓN ---
 document.addEventListener('DOMContentLoaded', () => {
 
+    // Input cantidad — Enter confirma
     const inputCant = document.getElementById('input-cantidad-manual');
     if (inputCant) {
         inputCant.addEventListener('keypress', (e) => {
@@ -1213,6 +1250,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Input código en registro — Enter salta al nombre
     const inputCodigoReg = document.getElementById('prod-codigo');
     if (inputCodigoReg) {
         inputCodigoReg.addEventListener('keypress', (e) => {
@@ -1223,17 +1261,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Foco automático en buscador al hacer click fuera de inputs/modales
     document.addEventListener('click', (e) => {
         const secPos = document.getElementById('sec-pos');
         if (secPos && secPos.style.display !== 'none') {
             const esInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
             const esModal = e.target.closest('.modal-vane') || e.target.closest('#modal-cantidad') || e.target.closest('#scanner-overlay');
             if (!esInput && !esModal) {
+                // preventScroll evita que el navegador haga scroll hacia arriba
                 document.getElementById('pos-search').focus({ preventScroll: true });
             }
         }
     });
 
+    // Buscador — escáner físico / teclado
     const posSearch = document.getElementById('pos-search');
     if (posSearch) {
         posSearch.addEventListener('input',   (e) => filtrarPOS(e.target.value));
@@ -1244,6 +1285,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 filtrarPOS(posSearch.value);
             }
         });
+        // Evitar que el navegador muestre sugerencias guardadas
         posSearch.addEventListener('focus', () => {
             posSearch.setAttribute('autocomplete', 'off');
             posSearch.setAttribute('readonly', 'readonly');
@@ -1251,8 +1293,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Cerrar scanner-overlay con tecla Escape
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && scannerAbierto) cerrarEscaner();
+        if (e.key === 'Escape' && scannerActivo) cerrarEscaner();
     });
 });
 
