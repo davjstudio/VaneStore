@@ -215,68 +215,11 @@ body {
    IMPRESIÓN TICKETERA TÉRMICA
    ================================================ */
 @media print {
-    @page { margin: 0; size: 80mm auto; }
-
-    html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #fff !important;
-    }
-
-    /* Ocultar TODO */
-    body * { visibility: hidden; }
-
-    /* Mostrar solo la boleta */
-    .boleta-card,
-    .boleta-card * { visibility: visible; }
-
-    /* Ocultar botones y elementos de pantalla */
-    .no-print,
-    .btn-confirmar,
-    .btn-vaciar,
-    .admin-btns,
-    .btn-quitar-item,
-    .fila-pantalla { 
-        display: none !important; 
-        visibility: hidden !important; 
-    }
-
-    /* ✅ FIX CLAVE: mostrar la fila de impresión */
-    .fila-impresion.solo-print {
-        display: flex !important;
-        visibility: visible !important;
-    }
-
-    /* Posición y tamaño de la boleta */
-    .boleta-card {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 76mm !important;
-        max-width: 76mm !important;
-        padding: 4mm 3mm !important;
-        margin: 0 !important;
-        border: none !important;
-        box-shadow: none !important;
-        font-family: 'Courier New', monospace !important;
-        font-size: 11px !important;
-        color: #000 !important;
-        background: #fff !important;
-    }
-
-    .boleta-header h2  { font-size: 14px !important; }
-    .boleta-header p   { font-size: 10px !important; }
-    #fecha-boleta      { font-size: 10px !important; }
-    #num-ticket        { font-size: 11px !important; padding: 4px 0 !important; margin: 6px 0 !important; }
-    .info-ticket       { font-size: 10px !important; margin: 6px 0 !important; }
-    .divisor-ticket    { font-size: 10px !important; margin: 4px 0 !important; }
-    .item-boleta-linea { font-size: 10px !important; margin-bottom: 4px !important; }
-    .total-final       { font-size: 12px !important; }
-    .fila-pago,
-    .fila-vuelto       { font-size: 10px !important; }
-    #pago-cliente      { font-size: 10px !important; border: none !important; }
-    .footer-ticket     { font-size: 9px !important; margin-top: 8px !important; }
+    @page { size: 80mm auto; margin: 2mm; }
+    body  { width: 80mm !important; }
+    /* El CSS de impresión real está en imprimirBoleta() del script.js */
 }
+
 
 /* --- BUSCADOR --- */
 .search-wrapper { width: 100%; margin-bottom: 20px; }
@@ -289,13 +232,6 @@ body {
     font-family: 'Poppins', sans-serif; box-sizing: border-box !important; margin-bottom: 0 !important;
 }
 
-#pos-search { transition: all 0.3s ease; border: 2px solid #ccc; }
-#pos-search:focus {
-    border-color: #2ed573 !important;
-    box-shadow: 0 0 12px rgba(46,213,115,0.4);
-    outline: none; background-color: #f0fff4;
-}
-
 #btn-reset-search {
     position: absolute !important; right: 15px !important; top: 50% !important;
     transform: translateY(-50%) !important; background: #e0e0e0 !important;
@@ -306,25 +242,6 @@ body {
     padding: 0 !important; line-height: 1 !important; transition: background 0.2s;
 }
 #btn-reset-search:hover { background: #d0d0d0 !important; }
-
-#btn-abrir-scanner {
-    position: absolute !important;
-    right: 48px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    background: #2ed573 !important;
-    border: none !important;
-    border-radius: 50% !important;
-    width: 30px !important; height: 30px !important;
-    cursor: pointer !important;
-    display: flex !important; align-items: center !important; justify-content: center !important;
-    font-size: 15px !important; z-index: 10 !important;
-    padding: 0 !important; line-height: 1 !important;
-    transition: background 0.2s, transform 0.2s;
-    box-shadow: 0 2px 8px rgba(46,213,115,0.4);
-}
-#btn-abrir-scanner:hover { background: #26c265 !important; transform: translateY(-50%) scale(1.12) !important; }
-#btn-reset-search { right: 12px !important; }
 
 body.dark-mode #pos-search {
     background-color: #2c2c2c !important; color: white !important;
@@ -399,69 +316,3 @@ body.dark-mode .divisor-ticket { color: #555 !important; }
 
 .input-precio-boleta::-webkit-inner-spin-button,
 .input-precio-boleta::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-
-/* ================================================
-   ESCÁNER — OVERLAY MODAL
-   ================================================ */
-#scanner-overlay {
-    display: none;
-    position: fixed; inset: 0; z-index: 10000;
-    background: rgba(0, 0, 0, 0.88);
-    backdrop-filter: blur(6px);
-    align-items: center; justify-content: center;
-    flex-direction: column; gap: 20px;
-}
-
-#scanner-box {
-    position: relative;
-    width: min(92vw, 420px);
-    border-radius: 18px;
-    overflow: hidden;
-    background: #000;
-    box-shadow: 0 0 0 3px #2ed573, 0 25px 60px rgba(0,0,0,0.7);
-}
-
-#scanner-box video {
-    width: 100%; height: 100%;
-    object-fit: cover; display: block;
-}
-
-#scanner-box::before,
-#scanner-box::after {
-    content: '';
-    position: absolute; z-index: 10;
-    width: 40px; height: 40px;
-    border-color: #2ed573; border-style: solid;
-    pointer-events: none;
-}
-#scanner-box::before { top: 12px; left: 12px;  border-width: 3px 0 0 3px; border-radius: 6px 0 0 0; }
-#scanner-box::after  { bottom: 12px; right: 12px; border-width: 0 3px 3px 0; border-radius: 0 0 6px 6px; }
-
-#scan-line {
-    position: absolute; left: 8%; right: 8%; height: 2px;
-    background: linear-gradient(90deg, transparent, #2ed573, transparent);
-    box-shadow: 0 0 10px #2ed573;
-    z-index: 20;
-    animation: scanMove 2s linear infinite;
-}
-@keyframes scanMove {
-    0%   { top: 10%; }
-    50%  { top: 88%; }
-    100% { top: 10%; }
-}
-
-.scanner-hint {
-    color: rgba(255,255,255,0.8);
-    font-size: 0.88rem; font-family: 'Poppins', sans-serif;
-    text-align: center; letter-spacing: 0.3px;
-}
-.scanner-hint strong { color: #2ed573; }
-
-#btn-cerrar-scanner {
-    background: #ff4757; color: white; border: none;
-    padding: 12px 32px; border-radius: 50px;
-    font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 0.9rem;
-    cursor: pointer; transition: 0.2s;
-    box-shadow: 0 4px 16px rgba(255,71,87,0.4);
-}
-#btn-cerrar-scanner:hover { background: #ff6b81; transform: scale(1.04); }

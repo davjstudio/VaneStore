@@ -334,10 +334,7 @@ function mostrarSeccion(id) {
         editandoID = null;
         limpiarFormularioRegistro();
         renderTienda();
-        setTimeout(() => {
-            const search = document.getElementById('pos-search');
-            if (search) search.focus({ preventScroll: true });
-        }, 400);
+        // Sin focus automático — evita scroll no deseado
     }
 }
 
@@ -511,7 +508,30 @@ function toggleEscanerSilencioso() {
     }
 }
 
-// Función centralizada anti-doble-disparo
+// Función para escáner SILENCIOSO — procesa directo sin tocar el buscador
+function _procesarCodigoEscaneadoSilencioso(codigo) {
+    const ahora = Date.now();
+    if (codigo === _ultimoCodigoGlobal && (ahora - _ultimoTiempoGlobal) < 2500) return;
+    _ultimoCodigoGlobal = codigo;
+    _ultimoTiempoGlobal = ahora;
+
+    if (navigator.vibrate) navigator.vibrate([80]);
+
+    // Buscar producto por código exacto
+    const producto = productos.find(p => p.codigo === codigo);
+    if (producto) {
+        if (parseInt(producto.stock) <= 0) {
+            mostrarNotificacion('❌ AGOTADO: ' + producto.nombre);
+        } else {
+            agregarDirecto(producto.id);
+        }
+    } else {
+        // No encontrado — NO escribir en el buscador, solo notificar brevemente
+        mostrarNotificacion('🔍 Código no registrado: ' + codigo);
+    }
+}
+
+// Función para escáner MANUAL (modal 📷) — usa el buscador
 function _procesarCodigoEscaneado(codigo) {
     const ahora = Date.now();
     // Ignorar si es el mismo código en menos de 2.5 segundos
@@ -535,20 +555,23 @@ function _procesarCodigoEscaneado(codigo) {
 }
 
 function _actualizarBotonEscaner(activo) {
-    const btn = document.getElementById('btn-abrir-scanner');
+    const btn    = document.getElementById('btn-abrir-scanner');
+    const status = document.getElementById('scanner-status');
     if (!btn) return;
     if (activo) {
-        btn.textContent = '🟢';
-        btn.title       = 'Escáner ACTIVO — clic para apagar';
+        btn.innerHTML     = '🟢 Escáner Activo';
+        btn.title         = 'Clic para apagar el escáner';
         btn.style.background  = '#00c853';
-        btn.style.boxShadow   = '0 0 0 4px rgba(46,213,115,0.5)';
-        btn.style.transform   = 'translateY(-50%) scale(1.15)';
+        btn.style.boxShadow   = '0 0 0 4px rgba(46,213,115,0.4), 0 4px 12px rgba(46,213,115,0.4)';
+        btn.style.animation   = 'pulse-scanner 1.5s ease-in-out infinite';
+        if (status) { status.textContent = 'Apunta la cámara al código de barras 📦'; status.style.color = '#2ed573'; }
     } else {
-        btn.textContent = '📷';
-        btn.title       = 'Activar escáner';
+        btn.innerHTML     = '📷 Activar Escáner';
+        btn.title         = 'Activar escáner';
         btn.style.background  = '#2ed573';
-        btn.style.boxShadow   = '0 2px 8px rgba(46,213,115,0.4)';
-        btn.style.transform   = 'translateY(-50%)';
+        btn.style.boxShadow   = '0 4px 12px rgba(46,213,115,0.35)';
+        btn.style.animation   = 'none';
+        if (status) { status.textContent = 'Escáner apagado'; status.style.color = '#999'; }
     }
 }
 
@@ -578,7 +601,7 @@ async function _arrancarEscanerSilencioso() {
                     const codes = await detector.detect(videoSil);
                     if (codes.length > 0) {
                         const codigo = codes[0].rawValue.trim();
-                        _procesarCodigoEscaneado(codigo);
+                        _procesarCodigoEscaneadoSilencioso(codigo);
                     }
                 } catch(e) {}
                 loopSilencioso = requestAnimationFrame(tickSil);
@@ -593,7 +616,7 @@ async function _arrancarEscanerSilencioso() {
                 (result) => {
                     if (!scannerSilActivo || !result) return;
                     const codigo = result.getText().trim();
-                    _procesarCodigoEscaneado(codigo);
+                    _procesarCodigoEscaneadoSilencioso(codigo);
                 }
             );
         }
@@ -661,7 +684,6 @@ function setCantPreset(valor) {
 function cerrarModalCantidad() {
     document.getElementById('modal-cantidad').style.display = 'none';
     productoSeleccionadoID = null;
-    document.getElementById('pos-search').focus({ preventScroll: true });
 }
 
 function confirmarAgregarCarrito() {
@@ -738,11 +760,13 @@ function renderBoleta() {
             modificarPrecioCarrito(index, this.value);
         });
 
-        // Span precio (impresión)
+        // Span precio (impresión) — oculto en pantalla, visible al imprimir via CSS
         const spanPrecio = document.createElement('span');
         spanPrecio.className = 'precio-print';
-        spanPrecio.style.cssText = 'display:none; font-weight:800;';
-        spanPrecio.textContent = item.precio.toFixed(2);
+        // NO usar display:none inline — el @media print no puede overridarlo con !important en algunos browsers
+        // En cambio usamos visibility y posición absoluta para ocultarlo en pantalla
+        spanPrecio.style.cssText = 'position:absolute; left:-9999px; font-weight:800;';
+        spanPrecio.textContent = 'S/ ' + subtotal.toFixed(2);
 
         // Botón quitar — usa closure para capturar el id correcto
         const btnQuitar = document.createElement('button');
@@ -796,6 +820,99 @@ function limpiarCarrito() {
 }
 
 // --- FINALIZAR VENTA Y PDF ---
+// ── Imprimir boleta usando iframe oculto (sin ventana nueva) ──
+function imprimirBoleta(callback) {
+    // Construir HTML de items desde el carrito directamente
+    let itemsHTML = '';
+    carrito.forEach(item => {
+        const subtotal = item.precio * item.cant;
+        itemsHTML += `<div class="item-linea">
+            <span class="item-cant-nom">${item.cant}x ${item.nombre.toUpperCase()}</span>
+            <span class="item-precio">S/ ${subtotal.toFixed(2)}</span>
+        </div>`;
+        if (item.cant > 1) {
+            itemsHTML += `<div class="item-desglose">S/ ${item.precio.toFixed(2)} x ${item.cant} = S/ ${subtotal.toFixed(2)}</div>`;
+        }
+    });
+
+    const total    = document.getElementById('pos-total').innerText;
+    const pagoCon  = document.getElementById('pago-cliente').value || '0.00';
+    const vuelto   = document.getElementById('vuelto-cliente').innerText;
+    const fecha    = document.getElementById('fecha-boleta').innerText;
+    const ticket   = document.getElementById('num-ticket').innerText;
+    const vendedor = document.getElementById('vendedor-nombre').value;
+    const cliente  = document.getElementById('cliente-dni').value || '—';
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  @page { size: 80mm auto; margin: 2mm; }
+  body { font-family:'Courier New',monospace; font-size:11px; color:#000; width:76mm; }
+  .center { text-align:center; }
+  .bold   { font-weight:bold; }
+  .titulo { font-size:14px; font-weight:bold; letter-spacing:2px; }
+  .dash   { border-top:1px dashed #000; margin:4px 0; }
+  .row    { display:flex; justify-content:space-between; font-size:10px; margin:2px 0; }
+  .label  { font-size:10px; margin:1px 0; }
+  .item-linea { display:flex; justify-content:space-between; font-size:10px; margin:3px 0; }
+  .item-cant-nom { flex:1; }
+  .item-precio   { font-weight:bold; flex-shrink:0; margin-left:4px; }
+  .item-desglose { font-size:9px; color:#444; padding-left:14px; margin-bottom:2px; }
+  .total-row { display:flex; justify-content:space-between; font-size:12px; font-weight:bold; margin:4px 0; }
+  .footer { text-align:center; font-size:9px; margin-top:6px; border-top:1px dashed #000; padding-top:5px; }
+</style>
+</head>
+<body>
+  <div class="center titulo">VANE STORE</div>
+  <div class="center label">RUC: 10612629230</div>
+  <div class="center label">Calle 7 #170 Av. Buenos Aires</div>
+  <div class="center label">${fecha}</div>
+  <div class="dash"></div>
+  <div class="center bold">${ticket}</div>
+  <div class="dash"></div>
+  <div class="label">Vendedor: ${vendedor}</div>
+  <div class="label">Cliente (DNI/RUC): ${cliente}</div>
+  <div class="dash"></div>
+  ${itemsHTML}
+  <div class="dash"></div>
+  <div class="total-row"><span>TOTAL A PAGAR:</span><span>${total}</span></div>
+  <div class="row"><span>Paga con: S/</span><span>${pagoCon}</span></div>
+  <div class="row bold"><span>Vuelto:</span><span>${vuelto}</span></div>
+  <div class="footer">
+    ********************************<br>
+    ¡GRACIAS POR TU COMPRA EN VANE STORE!<br>
+    ********************************
+  </div>
+
+</body>
+</html>`;
+
+    // Crear iframe oculto
+    let iframe = document.getElementById('print-iframe');
+    if (iframe) iframe.remove();
+    iframe = document.createElement('iframe');
+    iframe.id = 'print-iframe';
+    iframe.style.cssText = 'position:fixed; top:-9999px; left:-9999px; width:80mm; height:0; border:none; opacity:0;';
+    document.body.appendChild(iframe);
+
+    iframe.onload = () => {
+        setTimeout(() => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            setTimeout(() => {
+                iframe.remove();
+                if (callback) callback();
+            }, 1000);
+        }, 300);
+    };
+
+    iframe.srcdoc = html;
+}
+
+
 async function bajarPDFBoleta(nombreArchivo) {
     const element = document.querySelector('.boleta-card');
     const opt = {
@@ -830,8 +947,11 @@ async function finalizarVenta() {
     };
 
     db.ref('ventas').push(ventaData);
+    // Descontar stock leyendo valor actual de Firebase para evitar inconsistencias
     carrito.forEach(item => {
-        db.ref('productos/' + item.id).update({ stock: item.stock - item.cant });
+        db.ref('productos/' + item.id + '/stock').transaction(stockActual => {
+            return (stockActual || 0) - item.cant;
+        });
     });
 
     document.getElementById('num-ticket').innerText  = numTicket;
@@ -845,15 +965,13 @@ async function finalizarVenta() {
     link.click();
 
     // Imprimir y limpiar SOLO después de que se cierre el diálogo de impresión
-    const afterPrint = () => {
+    // Imprimir — limpiar carrito después via callback
+    imprimirBoleta(() => {
         limpiarCarrito();
         document.getElementById('cliente-dni').value = '';
-        mostrarNotificacion('✅ Venta y PDF generados');
+        mostrarNotificacion('✅ Venta registrada e impresa');
         document.getElementById('pos-search').focus({ preventScroll: true });
-        window.removeEventListener('afterprint', afterPrint);
-    };
-    window.addEventListener('afterprint', afterPrint);
-    window.print();
+    });
 }
 
 // --- FILTRADO POS / BUSCADOR ---
@@ -1100,11 +1218,9 @@ async function reimprimirTicket(id) {
         document.getElementById('cliente-dni').value        = clienteBackup;
         document.getElementById('pago-cliente').value       = pagoBackup;
         document.getElementById('carrito-items').innerHTML  = carritoItemsBackup;
-        window.removeEventListener('afterprint', restaurar);
     };
-    window.addEventListener('afterprint', restaurar);
 
-    setTimeout(() => { window.print(); }, 500);
+    setTimeout(() => { imprimirBoleta(restaurar); }, 500);
 }
 
 async function exportarExcel() {
@@ -1262,38 +1378,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Foco automático en buscador al hacer click fuera de inputs/modales
-    document.addEventListener('click', (e) => {
-        const secPos = document.getElementById('sec-pos');
-        if (secPos && secPos.style.display !== 'none') {
-            const esInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
-            const esModal = e.target.closest('.modal-vane') || e.target.closest('#modal-cantidad') || e.target.closest('#scanner-overlay');
-            if (!esInput && !esModal) {
-                // preventScroll evita que el navegador haga scroll hacia arriba
-                document.getElementById('pos-search').focus({ preventScroll: true });
-            }
-        }
-    });
+    // Click listener de foco removido — causaba scroll y códigos no deseados en buscador
 
-    // Buscador — escáner físico / teclado
-    const posSearch = document.getElementById('pos-search');
-    if (posSearch) {
-        posSearch.addEventListener('input',   (e) => filtrarPOS(e.target.value));
-        posSearch.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                posSearch._enterPressed = true;
-                filtrarPOS(posSearch.value);
-            }
-        });
-        // Evitar que el navegador muestre sugerencias guardadas
-        posSearch.addEventListener('focus', () => {
-            posSearch.setAttribute('autocomplete', 'off');
-            posSearch.setAttribute('readonly', 'readonly');
-            setTimeout(() => posSearch.removeAttribute('readonly'), 50);
-        });
-    }
 
-    // Cerrar scanner-overlay con tecla Escape
+    // Buscador eliminado — escáner procesa directamente
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && scannerActivo) cerrarEscaner();
     });
@@ -1303,6 +1391,5 @@ window.onload = () => {
     if (localStorage.getItem('dark-mode') === 'true') {
         document.body.classList.add('dark-mode');
     }
-    const search = document.getElementById('pos-search');
-    if (search) search.focus({ preventScroll: true });
+    // No hacer focus automático al cargar — evita scroll no deseado
 };

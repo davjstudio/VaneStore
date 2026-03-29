@@ -215,23 +215,19 @@
 
     <main id="sec-pos" class="pos-container">
         <section class="catalog-section">
-            <div class="search-wrapper">
-                <div class="input-container-rel">
-                    <input type="text" id="pos-search"
-                           placeholder="⚡ LISTO PARA ESCANEAR..."
-                           onkeyup="filtrarPOS(this.value)"
-                           autocomplete="off"
-                           autocorrect="off"
-                           autocapitalize="off"
-                           spellcheck="false"
-                           inputmode="text"
-                           name="pos-search-unique-x99">
-
-                    <!-- 📷 BOTÓN ESCÁNER CÁMARA -->
-                    <button id="btn-abrir-scanner" onclick="toggleEscanerSilencioso()" title="Activar escáner">📷</button>
-
-                    <button id="btn-reset-search" onclick="resetearBuscador()" title="Limpiar búsqueda">✕</button>
-                </div>
+            <!-- Solo botón escáner, sin buscador -->
+            <div style="margin-bottom:16px; display:flex; align-items:center; gap:12px;">
+                <button id="btn-abrir-scanner" onclick="toggleEscanerSilencioso()"
+                        title="Activar/Apagar escáner"
+                        style="background:#2ed573; color:#000; border:none; border-radius:30px;
+                               padding:12px 24px; font-family:'Poppins',sans-serif; font-weight:700;
+                               font-size:0.95rem; cursor:pointer; display:flex; align-items:center;
+                               gap:8px; box-shadow:0 4px 12px rgba(46,213,115,0.35); transition:0.2s;">
+                    📷 Activar Escáner
+                </button>
+                <span id="scanner-status" style="font-size:0.82rem; color:#999; font-family:'Poppins',sans-serif;">
+                    Escáner apagado
+                </span>
             </div>
             <div id="grid-productos" class="grid-productos"></div>
         </section>
