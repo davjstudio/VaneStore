@@ -37,7 +37,6 @@ body {
 
 .logo { font-size: 1.6rem; font-weight: 800; flex-shrink: 0; }
 .logo span { color: var(--primary); }
-
 .menu-superior { display: flex; align-items: center; gap: 10px; }
 
 .btn-nav { 
@@ -54,11 +53,6 @@ body {
     padding: 20px; gap: 20px; align-items: flex-start; 
 }
 .catalog-section { flex: 2; }
-
-.search-wrapper input {
-    width: 100%; padding: 15px; border-radius: 30px; border: none;
-    margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); outline: none;
-}
 
 .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 15px; }
 .card-producto {
@@ -113,9 +107,7 @@ body {
     border: none; background: transparent; font-family: 'Courier New', monospace;
     font-size: 11px; width: 100%; outline: none; font-weight: bold;
 }
-
 .fila-info { display: flex; gap: 4px; align-items: baseline; }
-
 .divisor-ticket { text-align: center; font-size: 11px; margin: 8px 0; font-weight: bold; }
 
 .item-boleta-linea {
@@ -124,12 +116,10 @@ body {
 }
 
 .seccion-totales { border-top: 1px dashed #000; margin-top: 10px; padding-top: 10px; }
-
 .total-final {
     display: flex; justify-content: space-between;
     font-size: 14px; font-weight: bold; margin-bottom: 10px;
 }
-
 .fila-pago, .fila-vuelto {
     display: flex; justify-content: space-between;
     font-size: 12px; margin-bottom: 4px;
@@ -151,7 +141,7 @@ body {
     background: #2ed573; color: white; border: none; padding: 15px; 
     border-radius: 12px; font-weight: 700; width: 100%; cursor: pointer; 
     margin-top: 20px; font-size: 1.1rem; font-family: 'Poppins', sans-serif;
-    box-shadow: 0 4px 10px rgba(46, 213, 115, 0.3);
+    box-shadow: 0 4px 10px rgba(46,213,115,0.3);
 }
 .btn-vaciar { 
     background: #f1f2f6; color: #57606f; border: none; padding: 10px; 
@@ -168,7 +158,7 @@ body {
 .btn-snap { width: 100%; background: #34495e; color: white; padding: 12px; border: none; border-radius: 10px; margin: 10px 0; cursor: pointer; font-weight: 600; }
 .btn-guardar-prod { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: 700; margin-top: 10px; cursor: pointer; }
 
-.linea-historial:hover { background-color: #f9f9f9; transition: 0.2s; }
+.linea-historial:hover { background-color: #f9f9f9; }
 
 .toast-vane {
     position: fixed; top: 20px; right: 20px;
@@ -195,7 +185,7 @@ body {
 }
 @keyframes aparecer {
     from { transform: scale(0.8); opacity: 0; }
-    to   { transform: scale(1);   opacity: 1; }
+    to   { transform: scale(1); opacity: 1; }
 }
 .modal-botones { display: flex; gap: 10px; margin-top: 20px; }
 .btn-modal-si { flex: 1; background: #ff4757; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; }
@@ -211,61 +201,54 @@ body {
     .grid-productos { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
 }
 
-/* ================================================
-   IMPRESIÓN TICKETERA TÉRMICA
-   ================================================ */
 @media print {
     @page { size: 80mm auto; margin: 2mm; }
-    body  { width: 80mm !important; }
-    /* El CSS de impresión real está en imprimirBoleta() del script.js */
 }
 
-
-/* --- BUSCADOR --- */
-.search-wrapper { width: 100%; margin-bottom: 20px; }
-.input-container-rel { position: relative; width: 100%; display: flex; align-items: center; }
-
+/* ── BUSCADOR ── */
 #pos-search {
-    width: 100% !important; padding: 15px 80px 15px 20px !important; 
-    border-radius: 30px !important; border: none !important;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important; outline: none !important;
-    font-family: 'Poppins', sans-serif; box-sizing: border-box !important; margin-bottom: 0 !important;
+    width: 100%;
+    padding: 12px 18px;
+    border-radius: 30px;
+    border: 2px solid #eee;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+    box-sizing: border-box;
 }
 
-#btn-reset-search {
-    position: absolute !important; right: 15px !important; top: 50% !important;
-    transform: translateY(-50%) !important; background: #e0e0e0 !important;
-    border: none !important; border-radius: 50% !important;
-    width: 26px !important; height: 26px !important; cursor: pointer !important;
-    display: flex !important; align-items: center !important; justify-content: center !important;
-    color: #666 !important; font-size: 14px !important; z-index: 10 !important;
-    padding: 0 !important; line-height: 1 !important; transition: background 0.2s;
+/* ── ANIMACIÓN ESCÁNER ACTIVO ── */
+@keyframes pulse-scanner {
+    0%   { box-shadow: 0 0 0 0 rgba(46,213,115,0.7); }
+    70%  { box-shadow: 0 0 0 8px rgba(46,213,115,0); }
+    100% { box-shadow: 0 0 0 0 rgba(46,213,115,0); }
 }
-#btn-reset-search:hover { background: #d0d0d0 !important; }
 
+/* ── DARK MODE ── */
 body.dark-mode #pos-search {
-    background-color: #2c2c2c !important; color: white !important;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+    background-color: #2c2c2c;
+    color: white;
+    border-color: #444;
 }
-body.dark-mode .card-producto, body.dark-mode .boleta-card, 
-body.dark-mode .main-header, body.dark-mode .card-registro {
-    background-color: #1e1e1e !important; border-color: #333 !important; color: #e1e1e1 !important;
+body.dark-mode .card-producto,
+body.dark-mode .boleta-card,
+body.dark-mode .main-header,
+body.dark-mode .card-registro {
+    background-color: #1e1e1e !important;
+    border-color: #333 !important;
+    color: #e1e1e1 !important;
 }
 body.dark-mode .boleta-card { border: 1px dashed #444 !important; }
-body.dark-mode .item-boleta-linea, body.dark-mode .info-ticket,
+body.dark-mode .item-boleta-linea,
+body.dark-mode .info-ticket,
 body.dark-mode .total-final { color: #e1e1e1 !important; }
 body.dark-mode .divisor-ticket { color: #555 !important; }
 
 #video video { width: 100%; height: auto; border-radius: 12px; }
 .drawingBuffer { display: none; }
 
-/* --- PANTALLA DE BLOQUEO --- */
-#bloqueo-pantalla {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: linear-gradient(135deg, #2f3542 0%, #1e2124 100%);
-    z-index: 10000; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; color: white; font-family: 'Poppins', sans-serif;
-}
+/* ── PANTALLA DE BLOQUEO ── */
 .login-card {
     background: white; padding: 40px; border-radius: 30px; text-align: center;
     box-shadow: 0 20px 50px rgba(0,0,0,0.3); width: 90%; max-width: 350px; color: #2f3542;
@@ -274,45 +257,67 @@ body.dark-mode .divisor-ticket { color: #555 !important; }
 .login-card h2 { margin: 0 0 10px 0; font-size: 1.5rem; font-weight: 800; }
 .login-card h2 span { color: #00b4cc; }
 .login-card p { font-size: 0.9rem; color: #666; margin-bottom: 25px; }
-.pin-input-container { display: flex; flex-direction: column; gap: 15px; }
 #pin-input {
-    padding: 15px; font-size: 24px; text-align: center; letter-spacing: 10px;
-    border: 2px solid #f1f2f6; border-radius: 15px; outline: none; transition: 0.3s; background: #f8f9fa;
+    width: 100%; padding: 15px; font-size: 24px; text-align: center; letter-spacing: 10px;
+    border: 2px solid #f1f2f6; border-radius: 15px; outline: none; background: #f8f9fa;
+    box-sizing: border-box;
 }
 #pin-input:focus { border-color: #00b4cc; }
 .btn-entrar {
-    background: #00b4cc; color: white; border: none; padding: 15px;
-    border-radius: 15px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.3s;
+    width: 100%; background: #00b4cc; color: white; border: none; padding: 15px;
+    border-radius: 15px; font-weight: 700; font-size: 1rem; cursor: pointer;
 }
-.btn-entrar:hover { background: #0097ad; transform: translateY(-2px); }
+.btn-entrar:hover { background: #0097ad; }
 #error-pin { color: #ff4757; font-size: 0.85rem; margin-top: 10px; font-weight: 600; display: none; }
 
 .btn-cerrar-sesion {
     background-color: #ff4757; color: white; border: none; padding: 8px 15px;
-    border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Poppins', sans-serif; transition: 0.3s;
+    border-radius: 8px; font-weight: bold; cursor: pointer; font-family: 'Poppins', sans-serif;
 }
-.btn-cerrar-sesion:hover { background-color: #ff6b81; transform: scale(1.05); }
+.btn-cerrar-sesion:hover { background-color: #ff6b81; }
 
 .footer-studio a, .link-davj {
-    color: #ffffff !important; text-decoration: none !important;
-    font-weight: bold !important; border-bottom: none !important; outline: none !important;
+    color: #ffffff !important; text-decoration: none !important; font-weight: bold !important;
 }
-.footer-studio a:hover, .link-davj:hover { color: #00b4cc !important; opacity: 0.8; }
+.footer-studio a:hover, .link-davj:hover { color: #00b4cc !important; }
 
 .input-cantidad-gigante {
     width: 100%; padding: 15px; font-size: 2rem; text-align: center;
     border: 2px solid #f1f2f6; border-radius: 15px; margin-bottom: 15px;
-    box-sizing: border-box; font-weight: bold; color: #2f3542; outline: none; transition: 0.3s;
+    box-sizing: border-box; font-weight: bold; color: #2f3542; outline: none;
 }
 .input-cantidad-gigante:focus { border-color: #00b4cc; }
 
 .cantidad-selector { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
 .btn-cant-pre {
     flex: 1; background: #f1f2f6; border: 2px solid transparent; padding: 10px 5px;
-    border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s;
-    font-size: 0.8rem; color: #57606f;
+    border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 0.8rem; color: #57606f;
 }
 .btn-cant-pre:hover { border-color: #00b4cc; color: #00b4cc; background: white; }
 
-.input-precio-boleta::-webkit-inner-spin-button,
-.input-precio-boleta::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+/* ── BOTÓN FLOTANTE IR ARRIBA ── */
+#btn-top {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.2s ease;
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+#btn-top:hover {
+    transform: scale(1.1);
+    background: #0097ad;
+}

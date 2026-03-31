@@ -975,6 +975,16 @@ async function finalizarVenta() {
 }
 
 // --- FILTRADO POS / BUSCADOR ---
+// Buscador simple — solo muestra/oculta, sin tocar scroll ni DOM
+function filtrarNombre(q) {
+    const texto = q.trim().toLowerCase();
+    document.querySelectorAll('#grid-productos .card-producto').forEach(function(card) {
+        var h4 = card.querySelector('h4');
+        var nombre = h4 ? h4.textContent.toLowerCase() : '';
+        card.style.display = (!texto || nombre.indexOf(texto) !== -1) ? '' : 'none';
+    });
+}
+
 function filtrarPOS(val) {
     const q        = val.trim();
     const qLower   = q.toLowerCase();
@@ -1381,7 +1391,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Click listener de foco removido — causaba scroll y códigos no deseados en buscador
 
 
-    // Buscador eliminado — escáner procesa directamente
+    // Buscador simple de nombres
+    var searchInput = document.getElementById('pos-search');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            filtrarNombre(searchInput.value);
+        });
+    }
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && scannerActivo) cerrarEscaner();
     });

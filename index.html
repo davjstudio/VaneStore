@@ -51,12 +51,7 @@
         .btn-modal-no  { flex:1; background:#f1f2f6; color:#2f3542; border:none; padding:12px; border-radius:10px; font-weight:800; cursor:pointer; font-family:'Poppins',sans-serif; }
 
         /* --- BUSCADOR --- */
-        #pos-search { transition: all 0.3s ease; border: 2px solid #ccc; }
-        #pos-search:focus {
-            border-color: #2ed573 !important;
-            box-shadow: 0 0 12px rgba(46,213,115,0.4);
-            outline: none; background-color: #f0fff4;
-        }
+        #pos-search { border: 2px solid #eee; }
 
         /* ================================================
            ESCÁNER — OVERLAY MODAL
@@ -215,19 +210,18 @@
 
     <main id="sec-pos" class="pos-container">
         <section class="catalog-section">
-            <!-- Solo botón escáner, sin buscador -->
-            <div style="margin-bottom:16px; display:flex; align-items:center; gap:12px;">
+            <!-- Buscador de nombres + Botón escáner INDEPENDIENTES -->
+            <div style="margin-bottom:16px; display:flex; align-items:center; gap:10px;">
+                <input type="text" id="pos-search" placeholder="🔍 Buscar producto..." autocomplete="off">
                 <button id="btn-abrir-scanner" onclick="toggleEscanerSilencioso()"
                         title="Activar/Apagar escáner"
                         style="background:#2ed573; color:#000; border:none; border-radius:30px;
-                               padding:12px 24px; font-family:'Poppins',sans-serif; font-weight:700;
-                               font-size:0.95rem; cursor:pointer; display:flex; align-items:center;
-                               gap:8px; box-shadow:0 4px 12px rgba(46,213,115,0.35); transition:0.2s;">
-                    📷 Activar Escáner
+                               padding:12px 20px; font-family:'Poppins',sans-serif; font-weight:700;
+                               font-size:0.88rem; cursor:pointer; display:flex; align-items:center;
+                               gap:6px; box-shadow:0 4px 12px rgba(46,213,115,0.35);
+                               transition:all 0.2s; white-space:nowrap; flex-shrink:0;">
+                    📷 Escáner
                 </button>
-                <span id="scanner-status" style="font-size:0.82rem; color:#999; font-family:'Poppins',sans-serif;">
-                    Escáner apagado
-                </span>
             </div>
             <div id="grid-productos" class="grid-productos"></div>
         </section>
@@ -422,17 +416,18 @@
             }
         })();
 
-        // Foco automático al buscador al hacer click general
-        document.addEventListener('click', (e) => {
-            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-                const searchInput = document.getElementById('pos-search');
-                if (searchInput && document.getElementById('sec-pos').style.display !== 'none') {
-                    searchInput.focus();
-                }
-            }
-        });
+
     </script>
 
     <script src="script.js"></script>
+
+    <!-- Botón flotante ir arriba -->
+    <button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Ir arriba">↑</button>
+
+    <script>
+        window.addEventListener('scroll', function() {
+            document.getElementById('btn-top').style.opacity = window.scrollY > 200 ? '1' : '0';
+        });
+    </script>
 </body>
 </html>
