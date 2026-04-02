@@ -321,3 +321,22 @@ body.dark-mode .divisor-ticket { color: #555 !important; }
     transform: scale(1.1);
     background: #0097ad;
 }
+
+/* ── CURSOR PERSONALIZADO ── */
+/* Cursor normal: carrito de compras */
+body {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%2300b4cc' opacity='0.15'/%3E%3Ctext x='16' y='21' font-size='16' text-anchor='middle' font-family='Arial'%3E🛒%3C/text%3E%3C/svg%3E") 8 8, auto;
+}
+
+/* Cursor pointer (botones, links): rayo */
+button, a, [onclick], .card-producto, label, select, .btn-nav,
+.btn-confirmar, .btn-vaciar, .btn-modal-si, .btn-modal-no,
+.btn-cant-pre, .btn-guardar-prod, .btn-snap, .btn-cerrar-sesion {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%232ed573' opacity='0.2'/%3E%3Ctext x='16' y='21' font-size='16' text-anchor='middle' font-family='Arial'%3E⚡%3C/text%3E%3C/svg%3E") 8 8, pointer;
+}
+
+/* Cursor en inputs: lápiz */
+input[type="text"], input[type="number"], input[type="password"],
+input[type="date"], textarea, select {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23f1c40f' opacity='0.2'/%3E%3Ctext x='16' y='21' font-size='16' text-anchor='middle' font-family='Arial'%3E✏️%3C/text%3E%3C/svg%3E") 8 8, text;
+}

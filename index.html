@@ -352,6 +352,77 @@
         </div>
     </section>
 
+    <!-- MODAL EDITAR VENTA -->
+    <div id="modal-editar-venta" class="modal-vane">
+        <div class="modal-contenido" style="max-width:520px; width:95%; text-align:left;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h3 style="margin:0; font-weight:800; font-size:1.1rem;">✏️ Editar Venta</h3>
+                <button onclick="cerrarEditarVenta()" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:#999;">✕</button>
+            </div>
+
+            <div id="edicion-info" style="font-size:0.85rem; color:#666; margin-bottom:14px;"></div>
+
+            <!-- Lista de productos editables -->
+            <div id="edicion-lista" style="max-height:280px; overflow-y:auto; margin-bottom:14px;"></div>
+
+            <!-- Agregar producto: buscador + lista integrada -->
+            <div style="margin-bottom:16px; position:relative;">
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <div style="flex:1; position:relative;">
+                        <input type="text" id="edicion-buscador"
+                               placeholder="🔍 Escribe para buscar y agregar..."
+                               autocomplete="off"
+                               oninput="filtrarSelectorEdicion(this.value)"
+                               onfocus="document.getElementById('edicion-dropdown').style.display='block'"
+                               style="width:100%; padding:9px 14px; border:1px solid #ddd; border-radius:8px;
+                                      font-family:'Poppins',sans-serif; font-size:0.85rem; outline:none;
+                                      box-sizing:border-box;">
+                        <!-- Dropdown integrado -->
+                        <div id="edicion-dropdown"
+                             style="display:none; position:absolute; top:100%; left:0; right:0; z-index:999;
+                                    background:white; border:1px solid #ddd; border-radius:8px;
+                                    max-height:200px; overflow-y:auto; box-shadow:0 4px 12px rgba(0,0,0,0.15);
+                                    margin-top:4px;">
+                        </div>
+                    </div>
+                </div>
+                <!-- Input oculto para guardar el id seleccionado -->
+                <input type="hidden" id="edicion-selector-id">
+                <div id="edicion-producto-elegido"
+                     style="display:none; margin-top:8px; background:#f0fff4; border:1px solid #2ed573;
+                            border-radius:8px; padding:8px 12px; display:none; align-items:center; justify-content:space-between;">
+                    <span id="edicion-nombre-elegido" style="font-size:0.85rem; font-weight:600; color:#2f3542;"></span>
+                    <button onclick="agregarProductoEdicion()"
+                            style="background:#2ed573; color:white; border:none; border-radius:6px;
+                                   padding:6px 14px; font-family:'Poppins',sans-serif; font-weight:700;
+                                   cursor:pointer; font-size:0.85rem;">
+                        + Agregar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Total -->
+            <div style="display:flex; justify-content:space-between; align-items:center;
+                        background:#f8f9fa; padding:12px 16px; border-radius:10px; margin-bottom:16px;">
+                <span style="font-weight:700;">NUEVO TOTAL:</span>
+                <span id="edicion-total" style="font-size:1.2rem; font-weight:800; color:#2ed573;">S/ 0.00</span>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button onclick="cerrarEditarVenta()"
+                        style="flex:1; background:#f1f2f6; color:#2f3542; border:none; padding:12px;
+                               border-radius:10px; font-family:'Poppins',sans-serif; font-weight:700; cursor:pointer;">
+                    Cancelar
+                </button>
+                <button onclick="guardarEdicionVenta()"
+                        style="flex:1; background:#2ed573; color:white; border:none; padding:12px;
+                               border-radius:10px; font-family:'Poppins',sans-serif; font-weight:700; cursor:pointer;">
+                    ✅ Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL CONFIRMACIÓN -->
     <div id="modal-confirmacion" class="modal-vane">
         <div class="modal-contenido">
@@ -419,6 +490,15 @@
 
     </script>
 
+    <script>
+        document.addEventListener('click', function(e) {
+            const buscador  = document.getElementById('edicion-buscador');
+            const dropdown  = document.getElementById('edicion-dropdown');
+            if (dropdown && buscador && !buscador.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+    </script>
     <script src="script.js"></script>
 
     <!-- Botón flotante ir arriba -->

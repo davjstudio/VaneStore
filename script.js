@@ -1100,6 +1100,7 @@ function renderHistorialFiltrado() {
                 </div>
                 <div style="text-align:right;">
                     <span style="font-weight:bold; color:#2ed573;">S/ ${v.total.toFixed(2)}</span><br>
+                    <button onclick="abrirEditarVenta('${v.id}')" style="border:none; background:none; cursor:pointer; color:#f39c12;">✏️</button>
                     <button onclick="reimprimirTicket('${v.id}')" style="border:none; background:none; cursor:pointer; color:#5352ed;">📄 PDF</button>
                     <button onclick="prepararEliminarVenta('${v.id}', event)" style="border:none; background:none; cursor:pointer; color:#ff4757;">🗑️</button>
                 </div>
@@ -1231,6 +1232,152 @@ async function reimprimirTicket(id) {
     };
 
     setTimeout(() => { imprimirBoleta(restaurar); }, 500);
+}
+
+// ============================================================
+//  EDITAR VENTA DEL HISTORIAL
+// ============================================================
+
+let ventaEditandoId = null;
+let carritoEdicion  = [];
+
+function abrirEditarVenta(id) {
+    const v = todasLasVentas.find(x => x.id === id);
+    if (!v) return;
+    ventaEditandoId = id;
+
+    // Copiar el detalleCarrito para editar
+    carritoEdicion = v.detalleCarrito
+        ? JSON.parse(JSON.stringify(v.detalleCarrito))
+        : v.productos.map(p => ({ nombre: p, cant: 1, precio: 0 }));
+
+    renderModalEdicion(v);
+    document.getElementById('modal-editar-venta').style.display = 'flex';
+}
+
+function renderModalEdicion(v) {
+    const info = document.getElementById('edicion-info');
+    info.innerHTML = `<strong style="color:#5352ed;">${v.ticket}</strong> · ${v.fecha}`;
+
+    const lista = document.getElementById('edicion-lista');
+    lista.innerHTML = '';
+
+    carritoEdicion.forEach((item, i) => {
+        const fila = document.createElement('div');
+        fila.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:10px; background:#f8f9fa; padding:8px 12px; border-radius:10px;';
+        fila.innerHTML = `
+            <span style="flex:1; font-size:0.88rem; font-weight:600;">${item.nombre}</span>
+            <input type="number" value="${item.cant}" min="1"
+                   style="width:55px; padding:5px; border:1px solid #ddd; border-radius:6px; text-align:center; font-family:'Poppins',sans-serif;"
+                   onchange="carritoEdicion[${i}].cant = parseInt(this.value)||1; actualizarTotalEdicion();">
+            <span style="font-size:0.85rem; color:#666;">× S/ ${item.precio.toFixed(2)}</span>
+            <button onclick="eliminarItemEdicion(${i})"
+                    style="background:#ff4757; color:white; border:none; border-radius:6px; padding:4px 8px; cursor:pointer;">✕</button>`;
+        lista.appendChild(fila);
+    });
+
+    // Limpiar buscador al abrir
+    const buscadorEl = document.getElementById('edicion-buscador');
+    if (buscadorEl) buscadorEl.value = '';
+    const dropEl = document.getElementById('edicion-dropdown');
+    if (dropEl) dropEl.style.display = 'none';
+    const elegidoEl = document.getElementById('edicion-producto-elegido');
+    if (elegidoEl) elegidoEl.style.display = 'none';
+    document.getElementById('edicion-selector-id').value = '';
+
+    actualizarTotalEdicion();
+}
+
+function eliminarItemEdicion(i) {
+    carritoEdicion.splice(i, 1);
+    const v = todasLasVentas.find(x => x.id === ventaEditandoId);
+    renderModalEdicion(v);
+}
+
+function filtrarSelectorEdicion(q) {
+    const texto    = q.trim().toLowerCase();
+    const dropdown = document.getElementById('edicion-dropdown');
+    const elegido  = document.getElementById('edicion-producto-elegido');
+
+    // Ocultar producto elegido si el usuario escribe de nuevo
+    if (elegido) elegido.style.display = 'none';
+    document.getElementById('edicion-selector-id').value = '';
+
+    if (!texto) { dropdown.style.display = 'none'; return; }
+
+    const filtrados = productos.filter(p => p.nombre.toLowerCase().includes(texto)).slice(0, 10);
+
+    if (filtrados.length === 0) {
+        dropdown.innerHTML = '<div style="padding:10px 14px; color:#999; font-size:0.85rem;">Sin resultados</div>';
+        dropdown.style.display = 'block';
+        return;
+    }
+
+    dropdown.innerHTML = '';
+    filtrados.forEach(p => {
+        const item = document.createElement('div');
+        item.style.cssText = 'padding:9px 14px; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #f1f2f6; display:flex; justify-content:space-between; align-items:center;';
+        item.innerHTML = `<span>${p.nombre}</span><span style="color:#00b4cc; font-weight:700;">S/ ${p.precio.toFixed(2)}</span>`;
+        item.onmouseenter = () => item.style.background = '#f0f9ff';
+        item.onmouseleave = () => item.style.background = '';
+        item.onclick = () => {
+            // Seleccionar producto
+            document.getElementById('edicion-buscador').value     = p.nombre;
+            document.getElementById('edicion-selector-id').value  = p.id;
+            document.getElementById('edicion-nombre-elegido').textContent = `${p.nombre} — S/ ${p.precio.toFixed(2)}`;
+            elegido.style.display = 'flex';
+            dropdown.style.display = 'none';
+        };
+        dropdown.appendChild(item);
+    });
+    dropdown.style.display = 'block';
+}
+
+function agregarProductoEdicion() {
+    const id = document.getElementById('edicion-selector-id').value;
+    if (!id) return mostrarNotificacion('⚠️ Selecciona un producto primero');
+    const p = productos.find(x => x.id === id);
+    if (!p) return;
+
+    const existe = carritoEdicion.find(x => x.nombre === p.nombre);
+    if (existe) { existe.cant++; }
+    else { carritoEdicion.push({ id: p.id, nombre: p.nombre, precio: p.precio, cant: 1 }); }
+
+    // Limpiar buscador
+    document.getElementById('edicion-buscador').value = '';
+    document.getElementById('edicion-selector-id').value = '';
+    document.getElementById('edicion-producto-elegido').style.display = 'none';
+    document.getElementById('edicion-dropdown').style.display = 'none';
+
+    const v = todasLasVentas.find(x => x.id === ventaEditandoId);
+    renderModalEdicion(v);
+}
+
+function actualizarTotalEdicion() {
+    const total = carritoEdicion.reduce((s, i) => s + i.precio * i.cant, 0);
+    document.getElementById('edicion-total').textContent = 'S/ ' + total.toFixed(2);
+}
+
+function cerrarEditarVenta() {
+    document.getElementById('modal-editar-venta').style.display = 'none';
+    ventaEditandoId = null;
+    carritoEdicion  = [];
+}
+
+function guardarEdicionVenta() {
+    if (!ventaEditandoId || carritoEdicion.length === 0) return;
+
+    const nuevoTotal = carritoEdicion.reduce((s, i) => s + i.precio * i.cant, 0);
+    const nuevosProductos = carritoEdicion.map(i => `${i.cant}x ${i.nombre}`);
+
+    db.ref('ventas/' + ventaEditandoId).update({
+        total:          nuevoTotal,
+        productos:      nuevosProductos,
+        detalleCarrito: carritoEdicion
+    }).then(() => {
+        mostrarNotificacion('✅ Venta actualizada');
+        cerrarEditarVenta();
+    });
 }
 
 async function exportarExcel() {
